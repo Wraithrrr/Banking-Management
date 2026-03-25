@@ -11,11 +11,10 @@ export class UsersService {
   ) {}
 
   async create(userData: Partial<User>): Promise<User> {
-    const existingUser = await this.findByEmail(userData.email)
-    if (existingUser) {
+    const existing = await this.findByEmail(userData.email)
+    if (existing) {
       throw new ConflictException('Email already exists')
     }
-    
     const user = this.usersRepository.create(userData)
     return this.usersRepository.save(user)
   }

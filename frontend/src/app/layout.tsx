@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FlowForge - Enterprise Workflow Automation',
-  description: 'Automate your enterprise workflows with intelligent, scalable solutions.',
+  title: 'SmartES Banking — Automate Your Bank\'s Entire Operation',
+  description: 'SmartES Banking is the complete banking management platform built for Nigerian banks. Register your bank and automate every workflow — from compliance to branch management.',
 }
 
 export default function RootLayout({

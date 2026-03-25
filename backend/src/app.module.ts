@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { AuthModule } from './auth/auth.module'
 import { UsersModule } from './users/users.module'
+import { BanksModule } from './banks/banks.module'
+import { AdminModule } from './admin/admin.module'
+import { BranchesModule } from './branches/branches.module'
 
 @Module({
   imports: [
@@ -20,13 +23,16 @@ import { UsersModule } from './users/users.module'
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development', // Dev only!
+        synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
     }),
     AuthModule,
     UsersModule,
+    BanksModule,
+    AdminModule,
+    BranchesModule,
   ],
 })
 export class AppModule {}

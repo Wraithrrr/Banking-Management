@@ -61,8 +61,8 @@ export default function AIInsightPage() {
                             <Brain className="w-8 h-8 text-blue-900" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-bold mb-2">🧠 AI INSIGHTS DASHBOARD</h1>
-                            <p className="text-blue-100 text-lg">SUMMIT ISLAMIC BANK - Predictive Intelligence Center</p>
+                            <h1 className="text-4xl font-bold mb-2">AI Intelligence Dashboard</h1>
+                            <p className="text-blue-100 text-lg">Summit Islamic Bank — Predictive Intelligence Center</p>
                         </div>
                     </div>
                     <div className="text-right">
@@ -76,7 +76,7 @@ export default function AIInsightPage() {
             <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
                 <div className="flex items-center gap-2 mb-4">
                     <Target className="w-5 h-5 text-blue-600" />
-                    <h3 className="text-lg font-bold text-gray-900">🔍 Analysis Filters</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Analysis Filters</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-base font-medium">
@@ -112,16 +112,16 @@ export default function AIInsightPage() {
                         <span className="px-3 py-1 bg-green-200 text-green-800 rounded-full text-xs font-bold">POSITIVE</span>
                     </div>
                     <div className="text-3xl font-bold text-gray-900 mb-1">+7.4%</div>
-                    <div className="text-base font-medium text-gray-700">📈 Predicted Revenue Growth Q4</div>
+                    <div className="text-base font-medium text-gray-700">Predicted Revenue Growth (Q4)</div>
                 </div>
 
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 border-l-4 border-red-500 shadow-lg">
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border-l-4 border-yellow-500 shadow-lg">
                     <div className="flex items-center justify-between mb-3">
-                        <AlertTriangle className="w-8 h-8 text-red-600" />
-                        <span className="px-3 py-1 bg-red-200 text-red-800 rounded-full text-xs font-bold">ALERT</span>
+                        <AlertTriangle className="w-8 h-8 text-yellow-600" />
+                        <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-bold">MODERATE</span>
                     </div>
-                    <div className="text-3xl font-bold text-gray-900 mb-1">High ⚠️</div>
-                    <div className="text-base font-medium text-gray-700">💵 Liquidity Risk Alert</div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">Low</div>
+                    <div className="text-base font-medium text-gray-700">Liquidity Risk Level</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-l-4 border-blue-500 shadow-lg">
@@ -130,7 +130,7 @@ export default function AIInsightPage() {
                         <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-xs font-bold">EXCELLENT</span>
                     </div>
                     <div className="text-3xl font-bold text-gray-900 mb-1">0.2%</div>
-                    <div className="text-base font-medium text-gray-700">🕌 Shariah Compliance Risk</div>
+                    <div className="text-base font-medium text-gray-700">Shariah Compliance Risk</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border-l-4 border-purple-500 shadow-lg">
@@ -139,7 +139,7 @@ export default function AIInsightPage() {
                         <span className="px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-xs font-bold">ACTIVE</span>
                     </div>
                     <div className="text-3xl font-bold text-gray-900 mb-1">5</div>
-                    <div className="text-base font-medium text-gray-700">💬 AI Recommendations</div>
+                    <div className="text-base font-medium text-gray-700">AI Recommendations</div>
                 </div>
             </div>
 
@@ -149,7 +149,7 @@ export default function AIInsightPage() {
                     <div className="p-2 bg-blue-100 rounded-lg">
                         <BarChart3 className="w-6 h-6 text-blue-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">📊 SECTION 1: PREDICTIVE INTELLIGENCE</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Section 1: Predictive Intelligence</h2>
                 </div>
 
                 {/* Revenue Forecast */}
@@ -185,7 +185,7 @@ export default function AIInsightPage() {
                 {/* Customer Growth Projection */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">📈 Customer Growth Projection</h3>
+                        <h3 className="text-xl font-bold text-gray-900">Customer Growth Projection</h3>
                         <select value={customerSegment} onChange={(e) => setCustomerSegment(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-base font-medium">
                             <option value="all">All Segments</option>
                             <option value="retail">Retail</option>
@@ -208,14 +208,14 @@ export default function AIInsightPage() {
                         </ResponsiveContainer>
                     </div>
                     <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                        <p className="text-sm font-bold text-yellow-800">⚠️ Churn Risk Prediction: Retail segment shows 3.2% churn risk increase in Q4</p>
+                        <p className="text-sm font-bold text-yellow-800">Churn Risk Prediction: Retail segment shows 3.2% churn risk increase in Q4</p>
                     </div>
                 </div>
 
                 {/* Liquidity Forecast */}
                 <div>
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">💹 Liquidity & Funding Projection</h3>
+                        <h3 className="text-xl font-bold text-gray-900">Liquidity & Funding Projection</h3>
                         <select className="px-4 py-2 border border-gray-300 rounded-lg text-base font-medium">
                             <option>Cashflow</option>
                             <option>Sukuk</option>
@@ -245,7 +245,7 @@ export default function AIInsightPage() {
                     <div className="p-2 bg-orange-100 rounded-lg">
                         <Activity className="w-6 h-6 text-orange-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">🧩 SECTION 2: DIAGNOSTIC INSIGHTS (WHY)</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Section 2: Diagnostic Insights</h2>
                 </div>
 
                 {/* Root Cause Analysis */}
@@ -278,7 +278,7 @@ export default function AIInsightPage() {
 
                 {/* Correlation Map */}
                 <div className="mb-8">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">📉 Revenue Impact Correlation</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Revenue Impact Correlation</h3>
                     <div className="space-y-3">
                         {correlationData.map((item, index) => (
                             <div key={index} className="flex items-center gap-4">
@@ -302,7 +302,7 @@ export default function AIInsightPage() {
 
                 {/* Sentiment Analysis */}
                 <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">📊 Customer Sentiment Analysis (NLP)</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Customer Sentiment Analysis</h3>
                     <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
@@ -348,7 +348,7 @@ export default function AIInsightPage() {
                     <div className="p-2 bg-purple-100 rounded-lg">
                         <Zap className="w-6 h-6 text-purple-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">💡 SECTION 3: PRESCRIPTIVE INTELLIGENCE (ACTION)</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Section 3: Prescriptive Intelligence</h2>
                 </div>
 
                 {/* AI Recommendations */}
@@ -439,7 +439,7 @@ export default function AIInsightPage() {
 
                 {/* Scenario Simulator */}
                 <div className="mb-8">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">🎮 AI Scenario Simulator</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">AI Scenario Simulator</h3>
                     <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -483,7 +483,7 @@ export default function AIInsightPage() {
 
                 {/* AI Confidence Gauge */}
                 <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">📊 AI Model Confidence & Accuracy</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">AI Model Confidence & Accuracy</h3>
                     <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
                         <div className="flex items-center justify-between">
                             <div>
@@ -511,7 +511,7 @@ export default function AIInsightPage() {
                 <div className="flex items-start gap-4">
                     <Sparkles className="w-8 h-8 text-yellow-400 flex-shrink-0 mt-1" />
                     <div className="flex-1">
-                        <h3 className="text-2xl font-bold mb-3">💬 AI Executive Summary</h3>
+                        <h3 className="text-2xl font-bold mb-3">AI Executive Summary</h3>
                         <p className="text-lg text-blue-100 leading-relaxed">
                             "Q4 forecast indicates <span className="font-bold text-yellow-300">stable profit growth (+7.4%)</span> with minor liquidity pressure.
                             AI recommends <span className="font-bold text-yellow-300">rebalancing Sukuk allocation (+₦2B)</span> and deploying

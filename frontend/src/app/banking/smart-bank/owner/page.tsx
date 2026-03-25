@@ -36,8 +36,7 @@ import ProfessionalChart from '@/components/ui/ProfessionalChart';
 import ProfessionalPieChart from '@/components/ui/ProfessionalPieChart';
 import AIInsightPage from '@/components/SmartBank/Owner/AIInsightPage';
 import TreasuryInvestments from '@/components/SmartBank/Owner/TreasuryInvestments';
-import RiskCompliance from '@/components/SmartBank/Owner/RiskCompliance';
-import StrategicGovernance from '@/components/SmartBank/Owner/StrategicGovernance';
+import DepartmentOverview from '@/components/SmartBank/Owner/DepartmentOverview';
 import { useSearchParams } from 'next/navigation';
 
 interface ExecutiveMetrics {
@@ -400,13 +399,13 @@ export default function OwnerDashboard() {
     );
   }
 
-  // Risk & Compliance Tab
-  if (activeTab === 'risk-compliance') {
+  // Department Overview Tab
+  if (activeTab === 'department') {
     return (
       <div className="lg:flex min-h-screen bg-slate-50">
         <Sidebar role="owner" />
         <div className="flex-1 overflow-auto">
-          <RiskCompliance />
+          <DepartmentOverview />
         </div>
       </div>
     );
@@ -419,18 +418,6 @@ export default function OwnerDashboard() {
         <Sidebar role="owner" />
         <div className="flex-1 p-4 lg:p-8">
           <AIInsightPage />
-        </div>
-      </div>
-    );
-  }
-
-  // Strategic Governance Tab
-  if (activeTab === 'governance') {
-    return (
-      <div className="lg:flex min-h-screen bg-slate-50">
-        <Sidebar role="owner" />
-        <div className="flex-1 overflow-auto">
-          <StrategicGovernance />
         </div>
       </div>
     );
@@ -514,7 +501,6 @@ export default function OwnerDashboard() {
                     <div className="text-gray-600">Daily Transactions</div>
                   </div>
                 </div>
-
                 <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-yellow-100 rounded-2xl">
@@ -526,6 +512,199 @@ export default function OwnerDashboard() {
                     <div className="text-3xl font-bold text-gray-900 mb-1">{metrics.profitMargin}%</div>
                     <div className="text-gray-600">Profit Margin</div>
                   </div>
+                </div>
+              </div>
+
+              {/* Financial Health Indicators */}
+              <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Shield className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Financial Health Indicators</h3>
+                      <p className="text-gray-600">Regulatory & Prudential Compliance Metrics</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>All Compliant</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-center">
+                    <div className="text-2xl font-bold text-blue-700 mb-1">{metrics.capitalAdequacyRatio}%</div>
+                    <div className="text-xs font-semibold text-gray-700 leading-tight">Capital Adequacy</div>
+                    <div className="text-xs text-gray-500 mt-1">Min: 10% (Basel III)</div>
+                    <div className="mt-2 text-xs font-medium text-blue-600">Compliant</div>
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-4 border border-green-100 text-center">
+                    <div className="text-2xl font-bold text-green-700 mb-1">{metrics.roa}%</div>
+                    <div className="text-xs font-semibold text-gray-700 leading-tight">Return on Assets</div>
+                    <div className="text-xs text-gray-500 mt-1">Target: &gt;1.5%</div>
+                    <div className="mt-2 text-xs font-medium text-green-600">On Target</div>
+                  </div>
+                  <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 text-center">
+                    <div className="text-2xl font-bold text-purple-700 mb-1">{metrics.roe}%</div>
+                    <div className="text-xs font-semibold text-gray-700 leading-tight">Return on Equity</div>
+                    <div className="text-xs text-gray-500 mt-1">Target: &gt;15%</div>
+                    <div className="mt-2 text-xs font-medium text-purple-600">Exceeds Target</div>
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 text-center">
+                    <div className="text-2xl font-bold text-amber-700 mb-1">{metrics.nplRatio}%</div>
+                    <div className="text-xs font-semibold text-gray-700 leading-tight">NPL Ratio</div>
+                    <div className="text-xs text-gray-500 mt-1">Threshold: &lt;5%</div>
+                    <div className="mt-2 text-xs font-medium text-amber-600">Controlled</div>
+                  </div>
+                  <div className="bg-cyan-50 rounded-xl p-4 border border-cyan-100 text-center">
+                    <div className="text-2xl font-bold text-cyan-700 mb-1">{metrics.liquidityRatio}%</div>
+                    <div className="text-xs font-semibold text-gray-700 leading-tight">Liquidity Ratio</div>
+                    <div className="text-xs text-gray-500 mt-1">Min: 30%</div>
+                    <div className="mt-2 text-xs font-medium text-cyan-600">Strong</div>
+                  </div>
+                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 text-center">
+                    <div className="text-2xl font-bold text-emerald-700 mb-1">{metrics.shariahComplianceScore}%</div>
+                    <div className="text-xs font-semibold text-gray-700 leading-tight">Shariah Score</div>
+                    <div className="text-xs text-gray-500 mt-1">Min: 95%</div>
+                    <div className="mt-2 text-xs font-medium text-emerald-600">Certified</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Segments + Risk Dashboard */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Customer Segment Analysis */}
+                <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Users className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Customer Segment Analysis</h3>
+                      <p className="text-gray-600">Retail, SME & Corporate</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {customerInsights.map((segment, index) => (
+                      <div key={index} className="p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="font-bold text-gray-900">{segment.segment} Banking</div>
+                          <GrowthBadge value={segment.growth} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <div className="text-lg font-bold text-gray-900">{formatNumber(segment.count)}</div>
+                            <div className="text-xs text-gray-500">Customers ({segment.percentage}%)</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-gray-900">{formatCurrency(segment.avgDeposit)}</div>
+                            <div className="text-xs text-gray-500">Avg. Deposit</div>
+                          </div>
+                          <div>
+                            <div className={`text-lg font-bold ${segment.churnRate > 3 ? 'text-red-600' : 'text-green-600'}`}>{segment.churnRate}%</div>
+                            <div className="text-xs text-gray-500">Churn Rate</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Risk Dashboard */}
+                <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <AlertTriangle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Risk Dashboard</h3>
+                      <p className="text-gray-600">Current Exposure vs Regulatory Thresholds</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {riskMetrics.map((risk, index) => (
+                      <div key={index} className={`p-4 rounded-xl border ${risk.status === 'good' ? 'bg-green-50 border-green-100' : risk.status === 'warning' ? 'bg-yellow-50 border-yellow-100' : 'bg-red-50 border-red-100'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-bold text-gray-900">{risk.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${risk.status === 'good' ? 'bg-green-200 text-green-800' : risk.status === 'warning' ? 'bg-yellow-200 text-yellow-800' : 'bg-red-200 text-red-800'}`}>
+                              {risk.status === 'good' ? 'NORMAL' : risk.status === 'warning' ? 'WARNING' : 'CRITICAL'}
+                            </span>
+                            <div className={`flex items-center gap-1 text-xs font-medium ${risk.trend > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {risk.trend > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                              {Math.abs(risk.trend)}%
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-gray-600">Current: <span className="font-bold text-gray-900">{risk.current}%</span></span>
+                          <span className="text-gray-500">Threshold: {risk.threshold}%</span>
+                        </div>
+                        <div className="bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${risk.status === 'good' ? 'bg-green-500' : risk.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${Math.min((risk.current / risk.threshold) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Branch Network Performance */}
+              <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <MapPin className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Branch Network Performance</h3>
+                      <p className="text-gray-600">Top 5 Branches by Revenue — {metrics.branchCount} Total Active Branches</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">Branch</th>
+                        <th className="text-left py-3 px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">State</th>
+                        <th className="text-right py-3 px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">Customers</th>
+                        <th className="text-right py-3 px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">Revenue</th>
+                        <th className="text-right py-3 px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">Efficiency</th>
+                        <th className="text-right py-3 px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide">Growth</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {branchPerformance.map((branch, index) => (
+                        <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{index + 1}</div>
+                              <span className="font-medium text-gray-900">{branch.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-3 text-gray-600">{branch.location}</td>
+                          <td className="py-4 px-3 text-right font-medium text-gray-900">{formatNumber(branch.customers)}</td>
+                          <td className="py-4 px-3 text-right font-bold text-gray-900">{formatCurrency(branch.revenue)}</td>
+                          <td className="py-4 px-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${branch.efficiency}%` }} />
+                              </div>
+                              <span className="text-sm font-bold text-blue-600">{branch.efficiency}%</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-3 text-right">
+                            <GrowthBadge value={branch.growth} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 

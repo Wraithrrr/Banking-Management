@@ -1,8 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { UsersService } from '../users/users.service'
+import { User } from '../users/entities/user.entity'
 import { LoginDto } from './dto/login.dto'
-import { RegisterDto } from './dto/register.dto'
+import { VerifyOtpDto } from './dto/verify-otp.dto'
+import { SetPasswordDto } from './dto/set-password.dto'
 import * as bcrypt from 'bcrypt'
 
 @Injectable()
@@ -10,48 +14,65 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
-  async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email)
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user
-      return result
-    }
-    throw new UnauthorizedException('Invalid credentials')
-  }
-
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password)
-    const payload = { sub: user.id, email: user.email }
-    
+    const user = await this.usersService.findByEmail(loginDto.email)
+    if (!user || !user.password) {
+      throw new UnauthorizedException('Invalid credentials')
+    }
+    if (!(await bcrypt.compare(loginDto.password, user.password))) {
+      throw new UnauthorizedException('Invalid credentials')
+    }
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your account has been deactivated. Contact your IT Administrator.')
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role, bankId: user.bankId }
     return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
+        fullName: user.fullName,
         email: user.email,
-        company: user.company,
+        role: user.role,
+        bankId: user.bankId,
       },
     }
   }
 
-  async register(registerDto: RegisterDto) {
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10)
-    const user = await this.usersService.create({
-      ...registerDto,
-      password: hashedPassword,
-    })
-    
-    const { password, ...result } = user
-    const payload = { sub: result.id, email: result.email }
-    
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: result.id,
-        email: result.email,
-        company: result.company,
-      },
+  async verifyOtp(dto: VerifyOtpDto) {
+    const user = await this.usersService.findByEmail(dto.email)
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or OTP.')
     }
+    if (!user.otpCode || user.otpCode !== dto.otp) {
+      throw new UnauthorizedException('Invalid OTP. Please check and try again.')
+    }
+    if (user.otpExpiresAt && new Date() > user.otpExpiresAt) {
+      throw new BadRequestException('OTP has expired. Contact your IT Administrator for a new one.')
+    }
+
+    // Issue a short-lived token for the set-password step
+    const payload = { sub: user.id, email: user.email, purpose: 'set-password' }
+    return {
+      token: this.jwtService.sign(payload, { expiresIn: '15m' }),
+    }
+  }
+
+  async setPassword(userId: number, dto: SetPasswordDto) {
+    const user = await this.usersService.findById(userId)
+    const hashedPassword = await bcrypt.hash(dto.password, 10)
+
+    await this.usersRepository.update(user.id, {
+      password: hashedPassword,
+      otpCode: null,
+      otpExpiresAt: null,
+      isFirstLogin: false,
+    })
+
+    return { message: 'Password set successfully. You can now sign in.' }
   }
 }
