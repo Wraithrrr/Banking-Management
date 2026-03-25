@@ -30,7 +30,7 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been deactivated. Contact your IT Administrator.')
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role, bankId: user.bankId }
+    const payload = { sub: user.id, email: user.email, role: user.role, bankId: user.bankId, branchId: user.branchId ?? null }
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -39,6 +39,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         bankId: user.bankId,
+        branchId: user.branchId ?? null,
       },
     }
   }

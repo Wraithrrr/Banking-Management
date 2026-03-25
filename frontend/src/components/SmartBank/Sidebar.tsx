@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getStoredUser, logout as authLogout } from '@/lib/auth-client';
 import {
   Building2, LayoutDashboard, LogOut, Menu, X, ChevronDown,
   Brain, Users, FileCheck, Scale, Activity, DollarSign,
   GitBranch, UserPlus, FileClock, ClipboardCheck, BarChart2,
   TrendingUp, AlertTriangle, FileText, Wallet, UserCheck,
-  HeadphonesIcon, BookOpen, Landmark, CreditCard,
+  HeadphonesIcon, BookOpen, Landmark, CreditCard, Bell,
 } from 'lucide-react';
+import { authFetch } from '@/lib/auth-client';
 
 type Role =
   | 'owner'
@@ -46,7 +48,34 @@ export default function Sidebar({
 }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(userName);
+  const [displayEmail, setDisplayEmail] = useState(userEmail);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const session = getStoredUser();
+    if (session) {
+      setDisplayName(session.fullName);
+      setDisplayEmail(session.email);
+    }
+  }, []);
+
+  // Poll unread notification count every 30s
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await authFetch('/notifications/unread-count');
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(typeof data === 'number' ? data : 0);
+        }
+      } catch { /* silently ignore */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const menuItems: Record<Role, MenuItem[]> = {
     owner: [
@@ -271,7 +300,7 @@ export default function Sidebar({
         <div className="flex flex-col h-full lg:min-h-screen">
 
           {/* Logo */}
-          <div className="p-5 border-b border-gray-100">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <Link href="/banking/smart-bank" className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-[#F97316] rounded-lg flex items-center justify-center flex-shrink-0">
                 <Building2 className="w-4 h-4 text-white" />
@@ -282,6 +311,14 @@ export default function Sidebar({
                 <p className="text-xs text-gray-400 truncate leading-none mt-0.5">{bankName}</p>
               </div>
             </Link>
+            <div className="relative">
+              <Bell className="w-5 h-5 text-gray-400" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#F97316] rounded-full text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Role Badge */}
@@ -329,11 +366,11 @@ export default function Sidebar({
                 className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 <div className={`w-8 h-8 bg-gradient-to-br ${config.color} rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>
-                  {userName.charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 text-left overflow-hidden">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
-                  <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                  <p className="text-xs text-gray-400 truncate">{displayEmail}</p>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -348,14 +385,13 @@ export default function Sidebar({
                     <LayoutDashboard className="w-4 h-4" />
                     All Departments
                   </Link>
-                  <Link
-                    href="/"
-                    className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-red-600 border-t border-gray-100"
-                    onClick={() => setIsProfileOpen(false)}
+                  <button
+                    className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-red-600 border-t border-gray-100"
+                    onClick={() => { setIsProfileOpen(false); authLogout(); }}
                   >
                     <LogOut className="w-4 h-4" />
                     Logout
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
