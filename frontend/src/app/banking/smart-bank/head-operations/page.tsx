@@ -1,112 +1,86 @@
 'use client';
 
-import { useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle, Clock, TrendingUp, GitBranch, ArrowUp, ArrowDown, BarChart2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Activity, AlertTriangle, CheckCircle, Clock, TrendingUp, TrendingDown, Wallet, Loader2, RefreshCw, X } from 'lucide-react';
 import Sidebar from '@/components/SmartBank/Sidebar';
-import ProfessionalChart from '@/components/ui/ProfessionalChart';
+import { authFetch } from '@/lib/auth-client';
 
-const branchPerformance = [
-  { branch: 'Lagos Victoria Island', manager: 'Emeka Nwosu', txnToday: 312, efficiency: 94, revenue: '₦2.8B', status: 'excellent' },
-  { branch: 'Abuja Central', manager: 'Amina Garba', txnToday: 274, efficiency: 91, revenue: '₦2.4B', status: 'excellent' },
-  { branch: 'Kano Main', manager: 'Musa Usman', txnToday: 198, efficiency: 87, revenue: '₦1.9B', status: 'good' },
-  { branch: 'Port Harcourt', manager: 'Chisom Eze', txnToday: 163, efficiency: 82, revenue: '₦1.6B', status: 'good' },
-  { branch: 'Ibadan North', manager: 'Seun Adeyemi', txnToday: 121, efficiency: 74, revenue: '₦1.1B', status: 'warning' },
-];
+interface PendingTxn {
+  id: number; reference: string; type: string; amount: string; narration: string;
+  status: string; createdAt: string;
+  fromAccount?: { accountNumber: string; customer?: { firstName: string; lastName: string } };
+  toAccount?: { accountNumber: string };
+  teller?: { fullName: string };
+}
+interface VaultSummary {
+  branchId?: number; branchName?: string; date: string;
+  openingBalance: string; totalDeposits: string; totalWithdrawals: string; closingBalance: string;
+}
 
-const pendingApprovals = [
-  { ref: 'TXN-9921', branch: 'Lagos VI', type: 'High-Value Transfer', amount: '₦12,500,000', requestedBy: 'Emeka Nwosu', time: '10:32 AM', priority: 'high' },
-  { ref: 'TXN-9918', branch: 'Abuja Central', type: 'Cash Withdrawal', amount: '₦8,000,000', requestedBy: 'Amina Garba', time: '10:15 AM', priority: 'high' },
-  { ref: 'TXN-9905', branch: 'Kano Main', type: 'Inter-Bank Transfer', amount: '₦3,200,000', requestedBy: 'Musa Usman', time: '09:44 AM', priority: 'medium' },
-  { ref: 'TXN-9899', branch: 'Port Harcourt', type: 'Bulk Salary Payment', amount: '₦5,750,000', requestedBy: 'Chisom Eze', time: '09:20 AM', priority: 'medium' },
-];
-
-const escalations = [
-  { ref: 'ESC-0071', branch: 'Ibadan North', issue: 'Teller cash discrepancy — ₦45,000 shortfall', raisedBy: 'Seun Adeyemi', time: '11:05 AM', severity: 'high' },
-  { ref: 'ESC-0070', branch: 'Lagos VI', issue: 'Customer complaint: 3-day delay on account funding', raisedBy: 'Emeka Nwosu', time: '09:58 AM', severity: 'medium' },
-  { ref: 'ESC-0069', branch: 'Kano Main', issue: 'System downtime during end-of-day reconciliation', raisedBy: 'Musa Usman', time: 'Yesterday', severity: 'medium' },
-];
-
-const txnTrend = [
-  { name: 'Mon', value: 1240 },
-  { name: 'Tue', value: 1380 },
-  { name: 'Wed', value: 1195 },
-  { name: 'Thu', value: 1490 },
-  { name: 'Fri', value: 1620 },
-  { name: 'Sat', value: 870 },
-  { name: 'Today', value: 1068 },
-];
+const fmt = (v: string | number) => '₦' + Number(v).toLocaleString('en-NG', { minimumFractionDigits: 2 });
 
 export default function HeadOperationsDashboard() {
-  const [approving, setApproving] = useState<string | null>(null);
-  const [approved, setApproved] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<PendingTxn[]>([]);
+  const [vaults, setVaults] = useState<VaultSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [declineModal, setDeclineModal] = useState<PendingTxn | null>(null);
+  const [result, setResult] = useState<{ id: number; success: boolean } | null>(null);
 
-  const handleApprove = (ref: string) => {
-    setApproving(ref);
-    setTimeout(() => {
-      setApproved(prev => new Set(prev).add(ref));
-      setApproving(null);
-    }, 800);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [pr, vr] = await Promise.all([
+        authFetch('/transactions/pending'),
+        authFetch('/transactions/vault/all'),
+      ]);
+      if (pr.ok) setPending(await pr.json());
+      if (vr.ok) setVaults(await vr.json());
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleApprove = async (id: number) => {
+    setActionLoading(id);
+    try {
+      const res = await authFetch(`/transactions/${id}/approve`, { method: 'PATCH' });
+      if (res.ok) {
+        setResult({ id, success: true });
+        setPending(prev => prev.filter(t => t.id !== id));
+        load();
+      }
+    } finally { setActionLoading(null); }
   };
 
-  const totalTxnToday = branchPerformance.reduce((s, b) => s + b.txnToday, 0);
-  const pendingCount = pendingApprovals.filter(p => !approved.has(p.ref)).length;
+  const totalDeposits = vaults.reduce((s, v) => s + parseFloat(v.totalDeposits || '0'), 0);
+  const totalWithdrawals = vaults.reduce((s, v) => s + parseFloat(v.totalWithdrawals || '0'), 0);
+  const totalVaultBalance = vaults.reduce((s, v) => s + parseFloat(v.closingBalance || '0'), 0);
 
   return (
     <div className="lg:flex min-h-screen bg-[#F8FAFC]">
-      <Sidebar role="head-operations" userName="Taiwo Adekunle" userEmail="taiwo@demobank.ng" bankName="Demo Bank Ltd" />
-
+      <Sidebar role="head-operations" />
       <div className="flex-1 p-4 lg:p-8 space-y-6">
 
-        {/* Header */}
         <div className="bg-gradient-to-br from-teal-800 to-teal-600 rounded-2xl p-7 text-white">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
             <div>
               <h1 className="text-2xl font-bold mb-1">Head of Operations</h1>
-              <p className="text-teal-200 text-sm">Bank-wide operational oversight — all branches</p>
+              <p className="text-teal-200 text-sm">Bank-wide operational oversight</p>
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="flex gap-3 flex-wrap items-start">
               {[
-                { label: 'Active Branches', value: branchPerformance.length, sub: '↑ all online', color: 'text-white' },
-                { label: "Today's Transactions", value: totalTxnToday.toLocaleString(), sub: '+8.2% vs yesterday', color: 'text-white' },
-                { label: 'Pending Approvals', value: pendingCount, sub: 'requires action', color: pendingCount > 0 ? 'text-yellow-300' : 'text-teal-200' },
-                { label: 'Open Escalations', value: escalations.length, sub: '1 high priority', color: 'text-red-300' },
-              ].map((s, i) => (
-                <div key={i} className="text-center bg-white/10 rounded-xl px-4 py-3">
-                  <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                { label: 'Pending Approvals', value: pending.length, c: pending.length > 0 ? 'text-yellow-300' : 'text-white' },
+                { label: "Total Deposits", value: fmt(totalDeposits), c: 'text-teal-200' },
+                { label: "Total Withdrawals", value: fmt(totalWithdrawals), c: 'text-teal-200' },
+                { label: "Total Vault Balance", value: fmt(totalVaultBalance), c: 'text-white' },
+              ].map(s => (
+                <div key={s.label} className="bg-white/10 rounded-xl px-4 py-3 text-center min-w-[110px]">
+                  <div className={`text-lg font-bold ${s.c}`}>{s.value}</div>
                   <div className="text-teal-300 text-xs mt-0.5">{s.label}</div>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* KPI + Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <BarChart2 className="w-4 h-4 text-teal-700" />
-              <h3 className="font-bold text-[#0A1F44]">Transaction Volume — Last 7 Days</h3>
-            </div>
-            <ProfessionalChart data={txnTrend} barColor="#0D9488" />
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-[#0A1F44] mb-5">Branch Status</h3>
-            <div className="space-y-3">
-              {branchPerformance.map((b, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-[#0A1F44] truncate max-w-[130px]">{b.branch}</p>
-                    <p className="text-xs text-[#64748B]">{b.txnToday} txns today</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="w-20 bg-gray-100 rounded-full h-2 mb-1">
-                      <div className={`h-2 rounded-full ${b.efficiency >= 90 ? 'bg-[#0D9488]' : b.efficiency >= 80 ? 'bg-[#F97316]' : 'bg-red-500'}`} style={{ width: `${b.efficiency}%` }} />
-                    </div>
-                    <p className="text-xs text-[#64748B]">{b.efficiency}% eff.</p>
-                  </div>
-                </div>
-              ))}
+              <button onClick={load} className="bg-white/10 hover:bg-white/20 rounded-xl p-3 transition-colors"><RefreshCw className="w-4 h-4 text-white" /></button>
             </div>
           </div>
         </div>
@@ -116,73 +90,105 @@ export default function HeadOperationsDashboard() {
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <Activity className="w-4 h-4 text-teal-700" />
             <h3 className="font-bold text-[#0A1F44]">Pending Transaction Approvals</h3>
-            {pendingCount > 0 && (
-              <span className="ml-auto bg-[#F97316]/10 text-[#F97316] text-xs font-bold px-2.5 py-1 rounded-full">{pendingCount} pending</span>
+            {pending.length > 0 && (
+              <span className="ml-auto bg-[#F97316]/10 text-[#F97316] text-xs font-bold px-2.5 py-1 rounded-full">{pending.length} pending</span>
             )}
           </div>
-          <div className="divide-y divide-gray-50">
-            {pendingApprovals.map((p) => {
-              const isApproved = approved.has(p.ref);
-              return (
-                <div key={p.ref} className={`p-5 flex items-center gap-4 ${isApproved ? 'opacity-50' : ''}`}>
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.priority === 'high' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+          {loading ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-gray-300" /></div>
+          ) : pending.length === 0 ? (
+            <div className="text-center py-12 text-[#64748B]">
+              <CheckCircle className="w-10 h-10 mx-auto mb-3 text-teal-200" />
+              <p className="font-medium text-sm">No pending approvals — all clear</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {pending.map(txn => (
+                <div key={txn.id} className="p-5 flex items-center gap-4">
+                  <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold text-[#0A1F44] text-sm">{p.ref}</span>
-                      <span className="text-xs text-[#64748B]">· {p.branch} · {p.type}</span>
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <span className="font-bold text-[#0A1F44] text-sm font-mono">{txn.reference}</span>
+                      <span className="text-xs text-[#64748B] capitalize">· {txn.type}</span>
                     </div>
-                    <p className="text-sm text-[#0A1F44] font-semibold">{p.amount}</p>
-                    <p className="text-xs text-[#64748B]">Requested by {p.requestedBy} at {p.time}</p>
+                    <p className="text-sm font-bold text-[#0A1F44]">{fmt(txn.amount)}</p>
+                    <p className="text-xs text-[#64748B] mt-0.5">
+                      {txn.fromAccount ? `From: ${txn.fromAccount.accountNumber}${txn.fromAccount.customer ? ` (${txn.fromAccount.customer.firstName} ${txn.fromAccount.customer.lastName})` : ''}` : ''}
+                      {txn.teller ? ` · Teller: ${txn.teller.fullName}` : ''}
+                      {' · '}{new Date(txn.createdAt).toLocaleString('en-NG')}
+                    </p>
+                    {txn.narration && <p className="text-xs text-[#64748B] italic mt-0.5">"{txn.narration}"</p>}
                   </div>
-                  {isApproved ? (
-                    <span className="flex items-center gap-1 text-xs font-bold text-[#0D9488]"><CheckCircle className="w-3.5 h-3.5" /> Approved</span>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleApprove(p.ref)}
-                        disabled={approving === p.ref}
-                        className="px-4 py-2 bg-[#0D9488] hover:bg-teal-600 text-white rounded-lg text-xs font-bold transition-colors"
-                      >
-                        {approving === p.ref ? 'Processing...' : 'Approve'}
-                      </button>
-                      <button className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors">
-                        Decline
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleApprove(txn.id)}
+                      disabled={actionLoading === txn.id}
+                      className="px-4 py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-60">
+                      {actionLoading === txn.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Approve'}
+                    </button>
+                    <button onClick={() => setDeclineModal(txn)} className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors">
+                      Decline
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Escalations */}
+        {/* Vault Summary per Branch */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-            <AlertTriangle className="w-4 h-4 text-yellow-600" />
-            <h3 className="font-bold text-[#0A1F44]">Active Escalations</h3>
+            <Wallet className="w-4 h-4 text-teal-700" />
+            <h3 className="font-bold text-[#0A1F44]">Branch Vault Summary — Today</h3>
           </div>
-          <div className="divide-y divide-gray-50">
-            {escalations.map((e) => (
-              <div key={e.ref} className="p-5 flex items-start gap-4">
-                <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${e.severity === 'high' ? 'bg-red-500' : 'bg-yellow-500'}`} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-[#0A1F44] text-sm">{e.ref}</span>
-                    <span className="text-xs text-[#64748B]">· {e.branch}</span>
-                  </div>
-                  <p className="text-sm text-[#0A1F44]">{e.issue}</p>
-                  <p className="text-xs text-[#64748B] mt-1">Raised by {e.raisedBy} · {e.time}</p>
-                </div>
-                <button className="px-3 py-1.5 bg-[#0A1F44] text-white rounded-lg text-xs font-semibold hover:bg-[#1E3A5F] transition-colors">
-                  Handle
-                </button>
-              </div>
-            ))}
-          </div>
+          {vaults.length === 0 ? (
+            <div className="text-center py-10 text-[#64748B] text-sm">No vault data yet</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead><tr className="border-b border-gray-100 bg-[#F8FAFC]">
+                  {['Branch', 'Opening Balance', 'Deposits', 'Withdrawals', 'Closing Balance'].map(h => (
+                    <th key={h} className="text-left py-3 px-5 text-xs font-semibold text-[#64748B] uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {vaults.map((v, i) => (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-[#F8FAFC]">
+                      <td className="py-3.5 px-5 font-semibold text-[#0A1F44] text-sm">{v.branchName ?? `Branch #${v.branchId}`}</td>
+                      <td className="py-3.5 px-5 text-sm text-[#64748B]">{fmt(v.openingBalance)}</td>
+                      <td className="py-3.5 px-5 text-sm text-teal-700 font-semibold">+{fmt(v.totalDeposits)}</td>
+                      <td className="py-3.5 px-5 text-sm text-orange-600 font-semibold">-{fmt(v.totalWithdrawals)}</td>
+                      <td className="py-3.5 px-5 font-bold text-[#0A1F44] text-sm">{fmt(v.closingBalance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800"><span className="font-bold">Operations Policy:</span> Transactions above ₦1,000,000 require your approval before posting. Funds are held until you approve or decline.</p>
+        </div>
       </div>
+
+      {/* Decline confirmation */}
+      {declineModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-[#0A1F44] mb-2">Decline Transaction?</h3>
+            <p className="text-sm text-[#64748B] mb-1 font-mono">{declineModal.reference}</p>
+            <p className="text-sm text-[#0A1F44] font-bold mb-4">{fmt(declineModal.amount)} — {declineModal.type}</p>
+            <p className="text-sm text-[#64748B] mb-5">This will cancel the transaction. The teller will need to resubmit if needed.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeclineModal(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-[#64748B] font-semibold text-sm">Cancel</button>
+              <button onClick={() => setDeclineModal(null)} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-sm">Decline</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

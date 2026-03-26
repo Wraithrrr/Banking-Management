@@ -1,271 +1,245 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import {
   Users, TrendingUp, Activity, ArrowUp, ArrowDown, Clock,
-  MapPin, CheckCircle, AlertTriangle, DollarSign, BarChart2,
+  MapPin, CheckCircle, AlertTriangle, DollarSign, Loader2, RefreshCw, X,
 } from 'lucide-react';
 import Sidebar from '@/components/SmartBank/Sidebar';
-import ProfessionalChart from '@/components/ui/ProfessionalChart';
+import { authFetch, getStoredUser } from '@/lib/auth-client';
 import { useSearchParams } from 'next/navigation';
 
-// --- Branch-specific mock data ---
-const BRANCH = {
-  name: 'Lagos Victoria Island',
-  location: 'Lagos State',
-  code: 'LVI-001',
-  openedDate: '2018-03-14',
-  manager: 'Emeka Nwosu',
-};
+interface Loan {
+  id: number; customerName: string; accountNumber: string; type: string;
+  amount: string; purpose: string; termMonths: number; status: string;
+  createdAt: string; declineReason?: string;
+  creditOfficer?: { fullName: string };
+}
 
-const branchStats = {
-  customers: 45200,
-  customersGrowth: 12.4,
-  revenue: 2800000000,
-  revenueGrowth: 32.1,
-  transactions: 68420,
-  transactionsGrowth: 28.7,
-  efficiency: 94,
-  efficiencyGrowth: 2.1,
-};
+const fmt = (v: string | number) => '₦' + Number(v).toLocaleString('en-NG', { minimumFractionDigits: 2 });
 
-const monthlyRevenue = [
-  { name: 'Jan', value: 210 },
-  { name: 'Feb', value: 225 },
-  { name: 'Mar', value: 248 },
-  { name: 'Apr', value: 262 },
-  { name: 'May', value: 271 },
-  { name: 'Jun', value: 280 },
-];
-
-const monthlyCustomers = [
-  { name: 'Jan', value: 40200 },
-  { name: 'Feb', value: 41800 },
-  { name: 'Mar', value: 42900 },
-  { name: 'Apr', value: 43600 },
-  { name: 'May', value: 44500 },
-  { name: 'Jun', value: 45200 },
-];
-
-const staff = [
-  { name: 'Fatima Bello', role: 'Customer Service Lead', status: 'active', joined: '2020-06-01' },
-  { name: 'Yemi Adewale', role: 'Loans Officer', status: 'active', joined: '2021-03-15' },
-  { name: 'Chidinma Obi', role: 'Teller Supervisor', status: 'active', joined: '2019-09-10' },
-  { name: 'Bashir Musa', role: 'Operations Officer', status: 'active', joined: '2022-01-20' },
-  { name: 'Grace Eze', role: 'Customer Service Rep', status: 'on-leave', joined: '2023-05-05' },
-];
-
-const alerts = [
-  { type: 'warning', message: 'Daily transaction limit approaching 95% capacity', time: '2 hrs ago' },
-  { type: 'info', message: 'Q2 branch performance report submitted to HQ', time: '1 day ago' },
-  { type: 'success', message: 'Monthly customer acquisition target exceeded by 8.3%', time: '3 days ago' },
-];
-
-export default function BranchManagerDashboard() {
+function BranchManagerInner() {
+  const user = getStoredUser();
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState<'overview' | 'loans'>('overview');
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [declineModal, setDeclineModal] = useState<Loan | null>(null);
+  const [declineReason, setDeclineReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formatCurrency = (n: number) => {
-    if (n >= 1_000_000_000) return `₦${(n / 1_000_000_000).toFixed(1)}B`;
-    if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`;
-    return `₦${n.toLocaleString()}`;
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'loans') setActiveTab('loans');
+  }, [searchParams]);
+
+  const loadLoans = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authFetch('/loans');
+      if (res.ok) setLoans(await res.json());
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'loans') loadLoans();
+  }, [activeTab, loadLoans]);
+
+  const handleDecision = async (id: number, approve: boolean, reason?: string) => {
+    setActionLoading(id); setIsSubmitting(true);
+    try {
+      await authFetch(`/loans/${id}/bm-decision`, {
+        method: 'PATCH',
+        body: JSON.stringify({ approve, declineReason: reason }),
+      });
+      setDeclineModal(null); setDeclineReason('');
+      loadLoans();
+    } finally { setActionLoading(null); setIsSubmitting(false); }
   };
 
-  const formatNumber = (n: number) => new Intl.NumberFormat('en-NG').format(n);
-
-  const GrowthBadge = ({ value }: { value: number }) => (
-    <div className={`flex items-center gap-1 text-sm font-bold ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-      {value >= 0 ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-      {Math.abs(value)}%
-    </div>
-  );
-
-  const chartData = useMemo(() =>
-    activeTab === 'customers'
-      ? monthlyCustomers.map(d => ({ name: d.name, value: d.value / 1000 }))
-      : monthlyRevenue,
-    [activeTab]
-  );
+  const pendingLoans = loans.filter(l => l.status === 'pending-bm');
 
   return (
-    <div className="lg:flex min-h-screen bg-slate-50">
-      <Sidebar role="branch-manager" userName="Emeka Nwosu" userEmail="emeka@demobank.ng" bankName="Demo Bank Ltd" />
+    <div className="lg:flex min-h-screen bg-[#F8FAFC]">
+      <Sidebar role="branch-manager" />
+      <div className="flex-1 p-4 lg:p-8 space-y-6">
 
-      <div className="flex-1 p-4 lg:p-8 space-y-8">
-
-        {/* Header */}
-        <div className="bg-gradient-to-br from-green-800 to-green-900 rounded-2xl p-8 text-white shadow-xl">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="bg-gradient-to-br from-green-800 to-green-900 rounded-2xl p-7 text-white shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-5 h-5 text-green-300" />
-                <span className="text-green-300 text-sm font-medium">{BRANCH.location} · {BRANCH.code}</span>
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="w-4 h-4 text-green-300" />
+                <span className="text-green-300 text-sm font-medium">Branch Manager</span>
               </div>
-              <h1 className="text-3xl font-bold mb-1">{BRANCH.name} Branch</h1>
-              <p className="text-green-100">Branch Manager: {BRANCH.manager}</p>
-              <div className="flex items-center gap-2 mt-3">
+              <h1 className="text-2xl font-bold mb-1">{user?.fullName ?? 'Branch Manager'}</h1>
+              <div className="flex items-center gap-2 mt-2">
                 <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-green-300 text-sm">Live Data</span>
-                <span className="text-green-400 text-sm mx-2">·</span>
-                <Clock className="w-4 h-4 text-green-300" />
-                <span className="text-green-300 text-sm">Updated 5 mins ago</span>
+                <span className="text-green-300 text-sm">Live · {new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center bg-white/10 rounded-xl px-5 py-4">
-                <div className="text-2xl font-bold">{formatNumber(branchStats.customers)}</div>
-                <div className="text-green-200 text-xs mt-0.5">Customers</div>
-              </div>
-              <div className="text-center bg-white/10 rounded-xl px-5 py-4">
-                <div className="text-2xl font-bold">{branchStats.efficiency}%</div>
-                <div className="text-green-200 text-xs mt-0.5">Efficiency</div>
-              </div>
+            <div className="flex gap-3 flex-wrap items-start">
+              {[
+                { label: 'Pending BM Review', value: pendingLoans.length, c: pendingLoans.length > 0 ? 'text-yellow-300' : 'text-green-200' },
+              ].map(s => (
+                <div key={s.label} className="bg-white/10 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                  <div className={`text-2xl font-bold ${s.c}`}>{s.value}</div>
+                  <div className="text-green-300 text-xs mt-0.5">{s.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Tabs */}
+        <div className="flex gap-2">
           {[
-            { label: 'Branch Revenue', value: formatCurrency(branchStats.revenue), growth: branchStats.revenueGrowth, icon: DollarSign, color: 'bg-blue-100 text-blue-600' },
-            { label: 'Total Customers', value: formatNumber(branchStats.customers), growth: branchStats.customersGrowth, icon: Users, color: 'bg-green-100 text-green-600' },
-            { label: 'Daily Transactions', value: formatNumber(branchStats.transactions), growth: branchStats.transactionsGrowth, icon: Activity, color: 'bg-purple-100 text-purple-600' },
-            { label: 'Branch Efficiency', value: `${branchStats.efficiency}%`, growth: branchStats.efficiencyGrowth, icon: TrendingUp, color: 'bg-orange-100 text-orange-600' },
-          ].map((kpi, i) => (
-            <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 ${kpi.color} rounded-xl`}>
-                  <kpi.icon className="w-6 h-6" />
-                </div>
-                <GrowthBadge value={kpi.growth} />
-              </div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">{kpi.value}</div>
-              <div className="text-gray-500 text-sm">{kpi.label}</div>
-            </div>
+            { id: 'overview', label: 'Branch Overview' },
+            { id: 'loans', label: `Loan Approvals${pendingLoans.length > 0 ? ` (${pendingLoans.length})` : ''}` },
+          ].map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id as any)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activeTab === t.id ? 'bg-green-800 text-white' : 'bg-white border border-gray-200 text-[#64748B] hover:bg-gray-50'}`}>{t.label}</button>
           ))}
         </div>
 
-        {/* Revenue Trend Chart */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <BarChart2 className="w-5 h-5 text-green-700" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Monthly Revenue Trend</h3>
-              <p className="text-gray-500 text-sm">Branch revenue in ₦ (millions) — last 6 months</p>
-            </div>
-          </div>
-          <ProfessionalChart data={monthlyRevenue} barColor="#15803d" />
-        </div>
-
-        {/* Staff + Alerts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Branch Staff */}
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-700" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Branch Staff</h3>
-                <p className="text-gray-500 text-sm">{staff.filter(s => s.status === 'active').length} active · {staff.filter(s => s.status === 'on-leave').length} on leave</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {staff.map((member, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-blue-200 rounded-full flex items-center justify-center text-blue-800 font-bold text-xs flex-shrink-0">
-                      {member.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">{member.name}</div>
-                      <div className="text-gray-500 text-xs">{member.role}</div>
-                    </div>
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Loans in Branch', value: loans.length, icon: TrendingUp, color: 'bg-blue-100 text-blue-600' },
+                { label: 'Pending BM Review', value: pendingLoans.length, icon: Clock, color: 'bg-yellow-100 text-yellow-600' },
+                { label: 'Approved/Disbursed', value: loans.filter(l => l.status === 'approved' || l.status === 'disbursed').length, icon: CheckCircle, color: 'bg-green-100 text-green-600' },
+                { label: 'Declined', value: loans.filter(l => l.status === 'declined').length, icon: AlertTriangle, color: 'bg-red-100 text-red-600' },
+              ].map((kpi, i) => (
+                <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 ${kpi.color} rounded-xl`}><kpi.icon className="w-5 h-5" /></div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {member.status === 'active' ? 'Active' : 'On Leave'}
-                  </span>
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{kpi.value}</div>
+                  <div className="text-gray-500 text-sm">{kpi.label}</div>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Branch Alerts */}
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Branch Alerts</h3>
-                <p className="text-gray-500 text-sm">Recent notifications for your branch</p>
-              </div>
+            <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 flex items-start gap-3">
+              <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-800"><span className="font-bold">Your Role:</span> As Branch Manager, you review and recommend loan applications from your Credit Officers before they go to the Head of Credit for final approval.</p>
             </div>
-            <div className="space-y-4">
-              {alerts.map((alert, i) => (
-                <div key={i} className={`flex items-start gap-3 p-4 rounded-xl border ${
-                  alert.type === 'warning' ? 'bg-yellow-50 border-yellow-100' :
-                  alert.type === 'success' ? 'bg-green-50 border-green-100' :
-                  'bg-blue-50 border-blue-100'
-                }`}>
-                  {alert.type === 'warning' ? (
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  ) : alert.type === 'success' ? (
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <Activity className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{alert.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{alert.time}</p>
+          </div>
+        )}
+
+        {activeTab === 'loans' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+              <TrendingUp className="w-4 h-4 text-green-700" />
+              <h3 className="font-bold text-[#0A1F44]">Loans Awaiting Your Recommendation</h3>
+              {pendingLoans.length > 0 && <span className="ml-auto bg-[#F97316]/10 text-[#F97316] text-xs font-bold px-2.5 py-1 rounded-full">{pendingLoans.length} pending</span>}
+              <button onClick={loadLoans} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw className="w-3.5 h-3.5 text-gray-400" /></button>
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-gray-300" /></div>
+            ) : pendingLoans.length === 0 ? (
+              <div className="text-center py-12 text-[#64748B]">
+                <CheckCircle className="w-10 h-10 mx-auto mb-3 text-green-200" />
+                <p className="font-medium text-sm">No loans pending your review</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {pendingLoans.map(loan => (
+                  <div key={loan.id} className="p-5 flex items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="font-bold text-[#0A1F44] text-sm">{loan.customerName}</span>
+                        <span className="text-xs text-[#64748B] font-mono">· {loan.accountNumber}</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 capitalize">{loan.type}</span>
+                      </div>
+                      <p className="text-sm font-bold text-[#0A1F44]">{fmt(loan.amount)} — {loan.purpose}</p>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        {loan.termMonths}mo term
+                        {loan.creditOfficer ? ` · CO: ${loan.creditOfficer.fullName}` : ''}
+                        {' · '}{new Date(loan.createdAt).toLocaleDateString('en-NG')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => handleDecision(loan.id, true)} disabled={actionLoading === loan.id}
+                        className="px-4 py-2 bg-green-800 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-60">
+                        {actionLoading === loan.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Recommend'}
+                      </button>
+                      <button onClick={() => { setDeclineModal(loan); setDeclineReason(''); }}
+                        className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors">Decline</button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                ))}
+              </div>
+            )}
 
-        {/* Performance vs Bank Average */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-purple-700" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Branch vs Bank Average</h3>
-              <p className="text-gray-500 text-sm">How this branch compares to the bank-wide average</p>
-            </div>
-          </div>
-          <div className="space-y-5">
-            {[
-              { label: 'Revenue Growth', branch: 32.1, bank: 23.5 },
-              { label: 'Customer Growth', branch: 12.4, bank: 8.7 },
-              { label: 'Branch Efficiency', branch: 94, bank: 87 },
-              { label: 'Transaction Volume Growth', branch: 28.7, bank: 20.1 },
-            ].map((metric, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-semibold text-gray-700">{metric.label}</span>
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="text-green-700 font-bold">This branch: {metric.branch}%</span>
-                    <span className="text-gray-400">Bank avg: {metric.bank}%</span>
-                  </div>
+            {/* All loans table below */}
+            {loans.filter(l => l.status !== 'pending-bm').length > 0 && (
+              <div className="border-t border-gray-100">
+                <div className="p-4 bg-gray-50">
+                  <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wide">Other Loan Applications from Your Branch</p>
                 </div>
-                <div className="relative bg-gray-100 rounded-full h-3">
-                  <div className="absolute bg-gray-300 rounded-full h-3" style={{ width: `${(metric.bank / 100) * 100}%` }} />
-                  <div className="absolute bg-green-600 rounded-full h-3" style={{ width: `${(metric.branch / 100) * 100}%` }} />
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="border-b border-gray-100 bg-[#F8FAFC]">
+                      {['Applicant', 'Type', 'Amount', 'Status', 'Date'].map(h => (
+                        <th key={h} className="text-left py-3 px-5 text-xs font-semibold text-[#64748B] uppercase tracking-wide">{h}</th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {loans.filter(l => l.status !== 'pending-bm').map(loan => (
+                        <tr key={loan.id} className="border-b border-gray-50 hover:bg-[#F8FAFC]">
+                          <td className="py-3.5 px-5 font-semibold text-[#0A1F44] text-sm">{loan.customerName}</td>
+                          <td className="py-3.5 px-5"><span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 capitalize">{loan.type}</span></td>
+                          <td className="py-3.5 px-5 font-bold text-[#0A1F44] text-sm">{fmt(loan.amount)}</td>
+                          <td className="py-3.5 px-5">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${{ 'pending-hoc': 'bg-blue-50 text-blue-700', approved: 'bg-teal-50 text-teal-700', declined: 'bg-red-50 text-red-700', disbursed: 'bg-green-50 text-green-700' }[loan.status] ?? 'bg-gray-50 text-gray-600'}`}>
+                              {{ 'pending-hoc': 'Sent to HoC', approved: 'Approved', declined: 'Declined', disbursed: 'Disbursed' }[loan.status] ?? loan.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 text-xs text-[#64748B]">{new Date(loan.createdAt).toLocaleDateString('en-NG')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-
+        )}
       </div>
+
+      {/* Decline Modal */}
+      {declineModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[#0A1F44]">Decline Loan Application</h3>
+              <button onClick={() => setDeclineModal(null)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <p className="text-sm text-[#64748B] mb-4">{declineModal.customerName} — {fmt(declineModal.amount)}</p>
+            <div>
+              <label className="block text-sm font-semibold text-[#0A1F44] mb-1.5">Decline Reason *</label>
+              <textarea rows={3} required value={declineReason} onChange={e => setDeclineReason(e.target.value)}
+                placeholder="State the reason for declining..." className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none" />
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setDeclineModal(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-[#64748B] font-semibold text-sm">Cancel</button>
+              <button onClick={() => handleDecision(declineModal.id, false, declineReason)} disabled={isSubmitting || !declineReason.trim()}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white py-3 rounded-xl font-bold text-sm">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Decline'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function BranchManagerDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC]" />}>
+      <BranchManagerInner />
+    </Suspense>
   );
 }
