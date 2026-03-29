@@ -67,10 +67,11 @@ export function getToken(): string | null {
 // ─── Authenticated fetch helper ───────────────────────────────────────────────
 export async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getToken()
+  const isFormData = options.body instanceof FormData
   return fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },

@@ -7,9 +7,10 @@ import ComplianceOverview from '@/components/SmartBank/Compliance/ComplianceOver
 import ShariahCompliance from '@/components/SmartBank/Compliance/ShariahCompliance';
 import ComplianceWorkflows from '@/components/SmartBank/Compliance/ComplianceWorkflows';
 import { authFetch } from '@/lib/auth-client';
-import { CheckCircle, Clock, AlertTriangle, User, Loader2, RefreshCw, FileText } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, User, Loader2, RefreshCw, FileText, Plus, X } from 'lucide-react';
 import ProfessionalChart from '@/components/ui/ProfessionalChart';
 import { Scale } from 'lucide-react';
+import DocumentManager from '@/components/SmartBank/DocumentManager';
 
 function GovernanceBoard() { return <ComplianceOverview />; }
 function ShariahAuditReview() { return <ShariahCompliance />; }
@@ -166,63 +167,166 @@ function KYCAMLRegulatory() {
   );
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  education: 'Education', healthcare: 'Healthcare',
+  poverty_relief: 'Poverty Relief', community_dev: 'Community Dev.', other: 'Other',
+};
+
+interface ZakatSummary {
+  totalCollected: number; totalDistributed: number; pendingDistribution: number;
+  byCategory: { category: string; amount: number }[];
+  recentProjects: { id: number; type: string; category: string; amount: string; description: string; createdAt: string }[];
+  monthlyTrend: { month: string; collected: number; distributed: number }[];
+}
+
 function ZakatSocial() {
-  const kpis = [
-    { label: 'Zakat Collected (₦)', value: 125000000, color: 'bg-green-100', text: 'text-green-700' },
-    { label: 'Zakat Distributed (₦)', value: 98000000, color: 'bg-blue-100', text: 'text-blue-700' },
-    { label: 'Pending Distribution (₦)', value: 27000000, color: 'bg-yellow-100', text: 'text-yellow-700' },
-    { label: 'Social Projects', value: 12, color: 'bg-amber-100', text: 'text-amber-700' },
-  ];
-  const distributionData = [
-    { name: 'Education', value: 35 }, { name: 'Healthcare', value: 25 },
-    { name: 'Poverty Relief', value: 20 }, { name: 'Community Dev.', value: 12 }, { name: 'Other', value: 8 },
-  ];
-  const projects = [
-    { name: 'School Renovation', type: 'Education', amount: 12000000, status: 'Completed', date: '2025-08-10' },
-    { name: 'Medical Outreach', type: 'Healthcare', amount: 8000000, status: 'Ongoing', date: '2025-09-15' },
-    { name: 'Food Drive', type: 'Poverty Relief', amount: 5000000, status: 'Completed', date: '2025-07-20' },
-    { name: 'Clean Water Project', type: 'Community Dev.', amount: 7000000, status: 'Ongoing', date: '2025-09-28' },
-  ];
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount);
+  const [summary, setSummary] = useState<ZakatSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ type: 'collected', category: 'education', amount: '', description: '', referenceId: '' });
+
+  const fmt = (n: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authFetch('/zakat/summary');
+      if (res.ok) setSummary(await res.json());
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await authFetch('/zakat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, amount: parseFloat(form.amount) }),
+      });
+      if (res.ok) { setShowForm(false); setForm({ type: 'collected', category: 'education', amount: '', description: '', referenceId: '' }); load(); }
+    } finally { setSaving(false); }
+  };
+
+  const chartData = summary?.byCategory.map(c => ({ name: CATEGORY_LABELS[c.category] ?? c.category, value: c.amount })) ?? [];
+
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-green-600" /></div>;
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3 mb-2">
-        <Scale className="w-7 h-7 text-green-700" />
-        <h2 className="text-2xl font-bold text-gray-900">Zakat & Social Responsibility</h2>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <Scale className="w-7 h-7 text-green-700" />
+          <h2 className="text-2xl font-bold text-gray-900">Zakat & Social Responsibility</h2>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={load} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-green-700 hover:bg-green-600 text-white rounded-lg text-sm font-semibold transition-colors">
+            <Plus className="w-4 h-4" /> Record Transaction
+          </button>
+        </div>
       </div>
+
+      {/* Record form modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <form onSubmit={handleRecord} className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-md mx-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Record Zakat Transaction</h3>
+              <button type="button" onClick={() => setShowForm(false)}><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Type</label>
+                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-200">
+                  <option value="collected">Collected</option>
+                  <option value="distributed">Distributed</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Category</label>
+                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-200">
+                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Amount (₦)</label>
+              <input type="number" min="1" step="0.01" required value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="0.00" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Description</label>
+              <input type="text" required value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="e.g. School renovation project" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Reference (optional)</label>
+              <input type="text" value={form.referenceId} onChange={e => setForm(f => ({ ...f, referenceId: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-200" placeholder="Project ID or donor reference" />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button type="submit" disabled={saving} className="flex-1 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((k, i) => (
+        {[
+          { label: 'Zakat Collected (₦)',     value: fmt(summary?.totalCollected ?? 0),      color: 'bg-green-100',  text: 'text-green-700' },
+          { label: 'Zakat Distributed (₦)',   value: fmt(summary?.totalDistributed ?? 0),    color: 'bg-blue-100',   text: 'text-blue-700' },
+          { label: 'Pending Distribution (₦)',value: fmt(summary?.pendingDistribution ?? 0), color: 'bg-yellow-100', text: 'text-yellow-700' },
+          { label: 'Social Projects',          value: summary?.recentProjects.length ?? 0,    color: 'bg-amber-100',  text: 'text-amber-700' },
+        ].map((k, i) => (
           <div key={i} className={`rounded-xl p-6 ${k.color} border border-gray-200`}>
             <p className="text-sm text-gray-600">{k.label}</p>
-            <p className={`text-2xl font-bold ${k.text}`}>{typeof k.value === 'number' && k.value > 100 ? formatCurrency(k.value) : k.value}</p>
+            <p className={`text-2xl font-bold ${k.text}`}>{k.value}</p>
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Zakat Distribution by Category</h3>
-        <ProfessionalChart data={distributionData} barColor="#22c55e" />
-      </div>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4"><FileText className="w-5 h-5 text-green-700" /><h3 className="text-lg font-bold text-gray-900">Recent Social Finance Projects</h3></div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead><tr className="bg-green-50 text-green-900">
-              {['Project', 'Type', 'Amount', 'Status', 'Date'].map(h => <th key={h} className="px-4 py-2 text-left font-semibold">{h}</th>)}
-            </tr></thead>
-            <tbody>
-              {projects.map((p, idx) => (
-                <tr key={idx} className="border-b border-gray-100">
-                  <td className="px-4 py-2 font-medium text-gray-900">{p.name}</td>
-                  <td className="px-4 py-2 text-gray-700">{p.type}</td>
-                  <td className="px-4 py-2 text-gray-700">{formatCurrency(p.amount)}</td>
-                  <td className="px-4 py-2 text-gray-700">{p.status}</td>
-                  <td className="px-4 py-2 text-gray-700">{p.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+      {/* Distribution chart */}
+      {chartData.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Zakat Distribution by Category</h3>
+          <ProfessionalChart data={chartData} barColor="#22c55e" />
         </div>
+      )}
+
+      {/* Recent projects */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4"><FileText className="w-5 h-5 text-green-700" /><h3 className="text-lg font-bold text-gray-900">Recent Zakat Transactions</h3></div>
+        {(summary?.recentProjects.length ?? 0) === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">No transactions recorded yet. Use the button above to record your first.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead><tr className="bg-green-50 text-green-900">
+                {['Description', 'Category', 'Type', 'Amount', 'Date'].map(h => <th key={h} className="px-4 py-2 text-left font-semibold">{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {summary?.recentProjects.map(p => (
+                  <tr key={p.id} className="border-b border-gray-100">
+                    <td className="px-4 py-2 font-medium text-gray-900">{p.description}</td>
+                    <td className="px-4 py-2 text-gray-700">{CATEGORY_LABELS[p.category] ?? p.category}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${p.type === 'collected' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {p.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-gray-700">{fmt(parseFloat(p.amount))}</td>
+                    <td className="px-4 py-2 text-gray-500">{new Date(p.createdAt).toLocaleDateString('en-NG')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -230,11 +334,13 @@ function ZakatSocial() {
 
 function ComplianceReports() {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <h2 className="text-2xl font-bold mb-2 text-gray-900">Compliance Reports</h2>
-      <p className="text-gray-700 mb-4">Downloadable reports, audit logs, and regulatory submissions.</p>
-      <div className="text-gray-400">(Coming soon)</div>
-    </div>
+    <DocumentManager
+      defaultCategory="compliance"
+      allowedCategories={['compliance', 'kyc', 'general']}
+      title="Regulatory & Compliance Documents"
+      description="CBN returns, Shariah audit reports, AML filings, regulatory correspondence, and compliance records"
+      accentColor="amber"
+    />
   );
 }
 

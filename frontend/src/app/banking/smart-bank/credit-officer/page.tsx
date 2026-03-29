@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { BookOpen, UserPlus, Clock, CheckCircle, AlertTriangle, X, Loader2, RefreshCw, DollarSign } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/SmartBank/Sidebar';
+import DocumentManager from '@/components/SmartBank/DocumentManager';
 import { authFetch } from '@/lib/auth-client';
 
 interface LoanApplication {
@@ -26,7 +28,9 @@ const STATUS_LABEL: Record<string, string> = {
   disbursed: 'Disbursed',
 };
 
-export default function CreditOfficerDashboard() {
+function CreditOfficerInner() {
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get('tab') ?? 'applications';
   const [loans, setLoans] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -90,6 +94,8 @@ export default function CreditOfficerDashboard() {
           </div>
         </div>
 
+        {activeTab !== 'documents' && (
+        <>
         {submitted && (
           <div className="bg-teal-50 border border-teal-200 rounded-xl px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-teal-600" /><span className="text-sm font-medium text-teal-800">Loan application submitted. Awaiting Branch Manager review.</span></div>
@@ -118,13 +124,21 @@ export default function CreditOfficerDashboard() {
                   </tr></thead>
                   <tbody>
                     {loans.map(loan => (
-                      <tr key={loan.id} className="border-b border-gray-50 hover:bg-[#F8FAFC]">
+                      <tr key={loan.id} className={`border-b border-gray-50 hover:bg-[#F8FAFC] ${loan.status === 'declined' ? 'bg-red-50/30' : ''}`}>
                         <td className="py-4 px-5"><div className="font-semibold text-[#0A1F44] text-sm">{loan.customerName}</div><div className="text-xs text-gray-400 font-mono">{loan.accountNumber}</div></td>
                         <td className="py-4 px-5"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 capitalize">{loan.type}</span></td>
                         <td className="py-4 px-5 font-bold text-[#0A1F44] text-sm">{fmt(loan.amount)}</td>
                         <td className="py-4 px-5 text-sm text-[#64748B] max-w-[160px] truncate">{loan.purpose}</td>
                         <td className="py-4 px-5 text-sm text-[#64748B]">{loan.termMonths}mo</td>
-                        <td className="py-4 px-5"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLE[loan.status] ?? 'bg-gray-50 text-gray-600'}`}>{STATUS_LABEL[loan.status] ?? loan.status}</span></td>
+                        <td className="py-4 px-5">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLE[loan.status] ?? 'bg-gray-50 text-gray-600'}`}>{STATUS_LABEL[loan.status] ?? loan.status}</span>
+                          {loan.status === 'declined' && loan.declineReason && (
+                            <div className="mt-1.5 flex items-start gap-1 max-w-[200px]">
+                              <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
+                              <span className="text-xs text-red-600 italic leading-tight">"{loan.declineReason}"</span>
+                            </div>
+                          )}
+                        </td>
                         <td className="py-4 px-5 text-xs text-[#64748B]">{new Date(loan.createdAt).toLocaleDateString('en-NG')}</td>
                       </tr>
                     ))}
@@ -177,6 +191,28 @@ export default function CreditOfficerDashboard() {
           </div>
         </div>
       )}
+
+        </>
+        )}
+
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
+        <DocumentManager
+          defaultCategory="loan"
+          allowedCategories={['loan', 'kyc', 'general']}
+          title="Loan Documents"
+          description="Upload collateral photos, income statements, business registration, offer letters, and other loan-related documents"
+          accentColor="blue"
+        />
+      )}
     </div>
+  );
+}
+
+export default function CreditOfficerDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-gray-300" /></div>}>
+      <CreditOfficerInner />
+    </Suspense>
   );
 }

@@ -49,7 +49,7 @@ export default function AIInsightPage() {
     const [department, setDepartment] = useState("all");
     const [predictiveMetric, setPredictiveMetric] = useState("revenue");
     const [customerSegment, setCustomerSegment] = useState("all");
-    const [scenarioType, setScenarioType] = useState("treasury");
+    const [scenarioType, setScenarioType] = useState("credit");
 
     return (
         <div className="space-y-8">
@@ -86,8 +86,8 @@ export default function AIInsightPage() {
                     </select>
                     <select value={department} onChange={(e) => setDepartment(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-base font-medium">
                         <option value="all">All Departments</option>
-                        <option value="treasury">Treasury</option>
-                        <option value="risk">Risk Management</option>
+                        <option value="credit">Credit & Loans</option>
+                        <option value="operations">Operations</option>
                         <option value="retail">Retail Banking</option>
                     </select>
                     <select className="px-4 py-2 border border-gray-300 rounded-lg text-base font-medium">
@@ -445,10 +445,10 @@ export default function AIInsightPage() {
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-2">Scenario Type</label>
                                 <select value={scenarioType} onChange={(e) => setScenarioType(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base font-medium">
-                                    <option value="treasury">Treasury Operations</option>
-                                    <option value="risk">Risk Management</option>
-                                    <option value="it">IT Infrastructure</option>
+                                    <option value="credit">Credit Operations</option>
+                                    <option value="compliance">Compliance</option>
                                     <option value="operations">Branch Operations</option>
+                                    <option value="growth">Customer Growth</option>
                                 </select>
                             </div>
                             <div>

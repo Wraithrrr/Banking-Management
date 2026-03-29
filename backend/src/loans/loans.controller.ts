@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, UseGuards, Request, BadRequestException } from '@nestjs/common'
 import { LoansService } from './loans.service'
 import { CreateLoanDto, DecisionDto } from './dto/loan.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -49,5 +49,25 @@ export class LoansController {
   @Patch(':id/disburse')
   disburse(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.loansService.disburse(id, req.user)
+  }
+
+  @Get(':id/repayments')
+  getRepayments(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.loansService.getRepayments(id, req.user)
+  }
+
+  @Patch('repayments/:repaymentId/pay')
+  recordPayment(
+    @Param('repaymentId', ParseIntPipe) repaymentId: number,
+    @Body() body: { amount: number },
+    @Request() req,
+  ) {
+    if (!body.amount || body.amount <= 0) throw new BadRequestException('Amount must be greater than 0.')
+    return this.loansService.recordPayment(repaymentId, body.amount, req.user)
+  }
+
+  @Get('repayments/overdue')
+  getOverdue(@Request() req) {
+    return this.loansService.getOverdueRepayments(req.user)
   }
 }

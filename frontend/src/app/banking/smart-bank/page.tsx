@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, TrendingUp, Users, Activity, ArrowRight, Shield, Globe, Smartphone, ShieldAlert } from 'lucide-react';
+import { Building2, Shield, Globe, Smartphone, ArrowRight, FileCheck } from 'lucide-react';
 
 export default function SmartBankHome() {
   return (
@@ -58,124 +58,7 @@ export default function SmartBankHome() {
         </div>
 
         {/* Department Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Treasury Department */}
-          <Link href="/banking/smart-bank/treasury">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer group">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-8 text-white">
-                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                  <TrendingUp className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Treasury</h3>
-                <p className="text-blue-100 text-sm">Asset Management & Investments</p>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-blue-600 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Sukuk portfolio management</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-blue-600 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Profit-sharing calculator</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-blue-600 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Real-time asset tracking</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-blue-600 font-semibold group-hover:gap-2 transition-all">
-                  <span>Explore Dashboard</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Business Development Department */}
-          <Link href="/banking/smart-bank/business-development">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer group">
-              <div className="bg-gradient-to-br from-green-500 to-green-600 p-8 text-white">
-                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                  <Users className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Business Development</h3>
-                <p className="text-green-100 text-sm">Growth & Financial Inclusion</p>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-green-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-green-600 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Lead management system</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-green-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-green-600 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Agent network tracking</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-green-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-green-600 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Target segment analysis</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-green-600 font-semibold group-hover:gap-2 transition-all">
-                  <span>Explore Dashboard</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Risk Management */}
-          <Link href="/banking/smart-bank/risk-management">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer group">
-              <div className="bg-gradient-to-br from-rose-600 to-red-700 p-8 text-white">
-                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                  <ShieldAlert className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Risk Management</h3>
-                <p className="text-rose-100 text-sm">Fraud & Credit Risk</p>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-rose-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-rose-700 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Fraud pattern detection</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-rose-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-rose-700 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Credit scoring AI</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-rose-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-rose-700 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Live risk alerts feed</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-rose-700 font-semibold group-hover:gap-2 transition-all">
-                  <span>Explore Dashboard</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </div>
-          </Link>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
           {/* Compliance */}
           <Link href="/banking/smart-bank/compliance">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer group">
@@ -188,26 +71,45 @@ export default function SmartBankHome() {
               </div>
               <div className="p-6">
                 <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-amber-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-amber-700 text-xs">✓</span>
+                  {['KYC & regulatory reporting', 'Shariah compliance reviews', 'Workflow automations'].map(item => (
+                    <div key={item} className="flex items-start gap-2">
+                      <div className="w-5 h-5 bg-amber-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-amber-700 text-xs">✓</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{item}</p>
                     </div>
-                    <p className="text-sm text-gray-700">KYC & regulatory reporting</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-amber-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-amber-700 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Shariah compliance reviews</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-amber-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-amber-700 text-xs">✓</span>
-                    </div>
-                    <p className="text-sm text-gray-700">Workflow automations</p>
-                  </div>
+                  ))}
                 </div>
                 <div className="flex items-center justify-between text-amber-700 font-semibold group-hover:gap-2 transition-all">
+                  <span>Explore Dashboard</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Internal Control */}
+          <Link href="/banking/smart-bank/internal-control">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer group">
+              <div className="bg-gradient-to-br from-purple-700 to-purple-800 p-8 text-white">
+                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                  <FileCheck className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">Internal Control</h3>
+                <p className="text-purple-200 text-sm">Audit & Oversight</p>
+              </div>
+              <div className="p-6">
+                <div className="space-y-3 mb-6">
+                  {['Full audit trail', 'Exception reports', 'Activity monitoring'].map(item => (
+                    <div key={item} className="flex items-start gap-2">
+                      <div className="w-5 h-5 bg-purple-100 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-purple-700 text-xs">✓</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{item}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-purple-700 font-semibold group-hover:gap-2 transition-all">
                   <span>Explore Dashboard</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </div>

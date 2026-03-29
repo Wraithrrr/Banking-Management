@@ -52,4 +52,9 @@ export class TransactionsController {
   approve(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.transactionsService.approve(id, req.user)
   }
+
+  @Patch(':id/decline')
+  decline(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.transactionsService.decline(id, req.user)
+  }
 }

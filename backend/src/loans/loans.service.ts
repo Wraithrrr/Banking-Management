@@ -4,6 +4,9 @@ import { Repository } from 'typeorm'
 import { LoanApplication, LoanStatus } from './entities/loan-application.entity'
 import { LoanRepayment, RepaymentStatus } from './entities/loan-repayment.entity'
 import { CreateLoanDto, DecisionDto } from './dto/loan.dto'
+import { AuditLogService } from '../audit-log/audit-log.service'
+import { NotificationsService } from '../notifications/notifications.service'
+import { NotificationType } from '../notifications/entities/notification.entity'
 
 @Injectable()
 export class LoansService {
@@ -12,6 +15,8 @@ export class LoansService {
     private loansRepository: Repository<LoanApplication>,
     @InjectRepository(LoanRepayment)
     private repaymentsRepository: Repository<LoanRepayment>,
+    private auditLogService: AuditLogService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(dto: CreateLoanDto, actor: { userId: number; bankId: number; branchId?: number }): Promise<LoanApplication> {
@@ -23,7 +28,15 @@ export class LoansService {
       branchId: actor.branchId ?? null,
       bankId: actor.bankId,
     })
-    return this.loansRepository.save(loan)
+    const saved = await this.loansRepository.save(loan)
+    // Notify branch manager(s) in this branch
+    this.notificationsService.notifyRole({
+      role: 'branch-manager', bankId: actor.bankId, branchId: actor.branchId,
+      type: NotificationType.LOAN_UPDATE,
+      message: `New loan application from ${dto.customerName} — ₦${Number(dto.amount).toLocaleString()} awaiting your review.`,
+      relatedEntityId: saved.id, relatedEntityType: 'loan',
+    })
+    return saved
   }
 
   async findAll(actor: { userId: number; bankId: number; branchId?: number; role: string }): Promise<LoanApplication[]> {
@@ -53,7 +66,7 @@ export class LoansService {
     return loan
   }
 
-  async bmDecision(id: number, approve: boolean, dto: DecisionDto, actor: { userId: number; bankId: number; role: string }): Promise<LoanApplication> {
+  async bmDecision(id: number, approve: boolean, dto: DecisionDto, actor: { userId: number; bankId: number; role: string; name?: string; branchId?: number }): Promise<LoanApplication> {
     if (actor.role !== 'branch-manager') throw new ForbiddenException('Only Branch Manager can make this decision.')
     const loan = await this.findOne(id, actor)
     if (loan.status !== LoanStatus.PENDING_BM) throw new ForbiddenException('Loan is not pending Branch Manager review.')
@@ -64,10 +77,58 @@ export class LoansService {
       declineReason: approve ? null : (dto.declineReason ?? 'Declined by Branch Manager'),
     }
     await this.loansRepository.update(id, update)
+
+    if (approve) {
+      try {
+        await this.auditLogService.log({
+          action: 'LOAN_APPROVED_BM',
+          entityType: 'loan',
+          entityId: loan.id,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          actorName: actor.name ?? 'Branch Manager',
+          description: `Branch Manager approved loan for ${loan.customerName} — ₦${loan.amount}`,
+          bankId: actor.bankId,
+          branchId: actor.branchId ?? null,
+        })
+      } catch (_) {}
+    } else {
+      try {
+        await this.auditLogService.log({
+          action: 'LOAN_DECLINED_BM',
+          entityType: 'loan',
+          entityId: loan.id,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          actorName: actor.name ?? 'Branch Manager',
+          description: `Branch Manager declined loan for ${loan.customerName} — ₦${loan.amount}. Reason: ${update.declineReason}`,
+          bankId: actor.bankId,
+          branchId: actor.branchId ?? null,
+        })
+      } catch (_) {}
+    }
+
+    // Notify next step in pipeline
+    if (approve) {
+      this.notificationsService.notifyRole({
+        role: 'head-credit', bankId: actor.bankId,
+        type: NotificationType.LOAN_UPDATE,
+        message: `Loan for ${loan.customerName} (₦${Number(loan.amount).toLocaleString()}) approved by Branch Manager — awaiting your decision.`,
+        relatedEntityId: loan.id, relatedEntityType: 'loan',
+      })
+    } else {
+      this.notificationsService.notifyRole({
+        role: 'credit-officer', bankId: actor.bankId, branchId: actor.branchId,
+        type: NotificationType.LOAN_UPDATE,
+        message: `Loan for ${loan.customerName} was declined by Branch Manager. Reason: ${update.declineReason}`,
+        relatedEntityId: loan.id, relatedEntityType: 'loan',
+      })
+    }
+
     return { ...loan, ...update }
   }
 
-  async hocDecision(id: number, approve: boolean, dto: DecisionDto, actor: { userId: number; bankId: number; role: string }): Promise<LoanApplication> {
+  async hocDecision(id: number, approve: boolean, dto: DecisionDto, actor: { userId: number; bankId: number; role: string; name?: string; branchId?: number }): Promise<LoanApplication> {
     if (actor.role !== 'head-credit') throw new ForbiddenException('Only Head of Credit can make this decision.')
     const loan = await this.findOne(id, actor)
     if (loan.status !== LoanStatus.PENDING_HOC) throw new ForbiddenException('Loan is not pending Head of Credit review.')
@@ -78,13 +139,61 @@ export class LoansService {
       declineReason: approve ? null : (dto.declineReason ?? 'Declined by Head of Credit'),
     }
     await this.loansRepository.update(id, update)
+
+    if (approve) {
+      try {
+        await this.auditLogService.log({
+          action: 'LOAN_APPROVED_HOC',
+          entityType: 'loan',
+          entityId: loan.id,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          actorName: actor.name ?? 'Head of Credit',
+          description: `Head of Credit approved loan for ${loan.customerName} — ₦${loan.amount}`,
+          bankId: actor.bankId,
+          branchId: actor.branchId ?? null,
+        })
+      } catch (_) {}
+    } else {
+      try {
+        await this.auditLogService.log({
+          action: 'LOAN_DECLINED_HOC',
+          entityType: 'loan',
+          entityId: loan.id,
+          actorId: actor.userId,
+          actorRole: actor.role,
+          actorName: actor.name ?? 'Head of Credit',
+          description: `Head of Credit declined loan for ${loan.customerName} — ₦${loan.amount}. Reason: ${update.declineReason}`,
+          bankId: actor.bankId,
+          branchId: actor.branchId ?? null,
+        })
+      } catch (_) {}
+    }
+
+    // Notify next step in pipeline
+    if (approve) {
+      this.notificationsService.notifyRole({
+        role: 'teller', bankId: actor.bankId, branchId: loan.branchId,
+        type: NotificationType.LOAN_UPDATE,
+        message: `Loan for ${loan.customerName} (₦${Number(loan.amount).toLocaleString()}) is fully approved — ready for disbursement.`,
+        relatedEntityId: loan.id, relatedEntityType: 'loan',
+      })
+    } else {
+      this.notificationsService.notifyRole({
+        role: 'credit-officer', bankId: actor.bankId,
+        type: NotificationType.LOAN_UPDATE,
+        message: `Loan for ${loan.customerName} was declined by Head of Credit. Reason: ${update.declineReason}`,
+        relatedEntityId: loan.id, relatedEntityType: 'loan',
+      })
+    }
+
     return { ...loan, ...update }
   }
 
-  async disburse(id: number, actor: { userId: number; bankId: number; role: string }): Promise<LoanApplication> {
-    if (actor.role !== 'head-operations') throw new ForbiddenException('Only Head of Operations can disburse.')
+  async disburse(id: number, actor: { userId: number; bankId: number; role: string; name?: string; branchId?: number }): Promise<LoanApplication> {
+    if (actor.role !== 'teller') throw new ForbiddenException('Only Teller can disburse loans.')
     const loan = await this.findOne(id, actor)
-    if (loan.status !== LoanStatus.APPROVED) throw new ForbiddenException('Loan must be approved before disbursement.')
+    if (loan.status !== LoanStatus.APPROVED) throw new ForbiddenException('Loan must be fully approved before disbursement.')
     await this.loansRepository.update(id, { status: LoanStatus.DISBURSED })
 
     // Auto-generate monthly repayment schedule
@@ -101,7 +210,84 @@ export class LoansService {
       })
     }
     await this.repaymentsRepository.save(repayments)
+
+    try {
+      await this.auditLogService.log({
+        action: 'LOAN_DISBURSED',
+        entityType: 'loan',
+        entityId: loan.id,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        actorName: actor.name ?? 'Teller',
+        description: `Loan disbursed for ${loan.customerName} — ₦${loan.amount}`,
+        bankId: actor.bankId,
+        branchId: actor.branchId ?? null,
+      })
+    } catch (_) {}
+
     return { ...loan, status: LoanStatus.DISBURSED }
+  }
+
+  async getRepayments(loanId: number, actor: { bankId: number }): Promise<LoanRepayment[]> {
+    await this.findOne(loanId, actor) // verifies loan belongs to this bank
+    return this.repaymentsRepository.find({
+      where: { loanId },
+      order: { dueDate: 'ASC' },
+    })
+  }
+
+  async recordPayment(repaymentId: number, amount: number, actor: { userId: number; bankId: number; role: string; name?: string; branchId?: number }): Promise<LoanRepayment> {
+    if (actor.role !== 'teller') throw new ForbiddenException('Only Teller can record repayments.')
+    const repayment = await this.repaymentsRepository.findOne({ where: { id: repaymentId } })
+    if (!repayment) throw new NotFoundException('Repayment record not found.')
+    if (repayment.status === RepaymentStatus.PAID) throw new ForbiddenException('This installment is already paid.')
+
+    // Verify the loan belongs to this bank
+    await this.findOne(repayment.loanId, actor)
+
+    const due = parseFloat(repayment.amount)
+    const paid = parseFloat(repayment.paidAmount ?? '0') + amount
+    const newStatus = paid >= due ? RepaymentStatus.PAID : RepaymentStatus.PENDING
+
+    await this.repaymentsRepository.update(repaymentId, {
+      paidAmount: paid.toFixed(2),
+      status: newStatus,
+      paidAt: newStatus === RepaymentStatus.PAID ? new Date() : null,
+    })
+
+    try {
+      await this.auditLogService.log({
+        action: 'REPAYMENT_RECORDED',
+        entityType: 'repayment',
+        entityId: repaymentId,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        actorName: actor.name ?? 'Teller',
+        description: `Repayment of ₦${amount.toLocaleString()} recorded for loan #${repayment.loanId} — installment ${newStatus === RepaymentStatus.PAID ? 'fully paid' : 'partially paid'}`,
+        bankId: actor.bankId,
+        branchId: actor.branchId ?? null,
+      })
+    } catch (_) {}
+
+    return { ...repayment, paidAmount: paid.toFixed(2), status: newStatus }
+  }
+
+  async getOverdueRepayments(actor: { bankId: number }): Promise<LoanRepayment[]> {
+    const today = new Date().toISOString().split('T')[0]
+    // Mark any pending repayments past due date as overdue
+    await this.repaymentsRepository
+      .createQueryBuilder()
+      .update(LoanRepayment)
+      .set({ status: RepaymentStatus.OVERDUE })
+      .where('status = :s AND dueDate < :today', { s: RepaymentStatus.PENDING, today })
+      .execute()
+
+    return this.repaymentsRepository
+      .createQueryBuilder('r')
+      .innerJoin('r.loan', 'l')
+      .where('l.bankId = :bankId AND r.status = :status', { bankId: actor.bankId, status: RepaymentStatus.OVERDUE })
+      .orderBy('r.dueDate', 'ASC')
+      .getMany()
   }
 
   async getPortfolioSummary(actor: { bankId: number }) {

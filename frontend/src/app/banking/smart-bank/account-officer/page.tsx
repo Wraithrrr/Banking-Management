@@ -45,7 +45,7 @@ export default function AccountOfficerDashboard() {
       Object.entries(form).forEach(([k, v]) => { if (!['accountType'].includes(k)) fd.append(k, v); });
       if (kycFiles) Array.from(kycFiles).forEach(f => fd.append('kycDocs', f));
 
-      const custRes = await authFetch('/customers', { method: 'POST', body: fd, headers: {} });
+      const custRes = await authFetch('/customers', { method: 'POST', body: fd });
       const custData = await custRes.json();
       if (!custRes.ok) throw new Error(custData.message || 'Failed to create customer.');
 
@@ -87,7 +87,7 @@ export default function AccountOfficerDashboard() {
                   <div className="text-indigo-300 text-xs mt-0.5">{s.label}</div>
                 </div>
               ))}
-              <button onClick={loadAccounts} className="bg-white/10 hover:bg-white/20 rounded-xl p-3 transition-colors"><RefreshCw className="w-4 h-4 text-white" /></button>
+              <button onClick={loadAccounts} title="Refresh to see latest KYC approvals" className="bg-white/10 hover:bg-white/20 rounded-xl p-3 transition-colors"><RefreshCw className="w-4 h-4 text-white" /></button>
             </div>
           </div>
         </div>
@@ -110,11 +110,21 @@ export default function AccountOfficerDashboard() {
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center"><UserCheck className="w-4 h-4 text-indigo-700" /></div>
-              <div><h2 className="font-bold text-[#0A1F44]">Recent Account Openings</h2><p className="text-[#64748B] text-xs">{accounts.length} accounts</p></div>
+              <div>
+                <h2 className="font-bold text-[#0A1F44]">Recent Account Openings</h2>
+                <p className="text-[#64748B] text-xs">{accounts.length} accounts
+                  {pendingCount > 0 && <span className="ml-1 text-amber-600">· {pendingCount} awaiting KYC</span>}
+                </p>
+              </div>
             </div>
-            <button onClick={() => { setShowModal(true); setFormError(''); setResult(null); }} className="flex items-center gap-2 bg-[#F97316] hover:bg-orange-500 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors">
-              <UserPlus className="w-4 h-4" />Open New Account
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={loadAccounts} title="Refresh KYC status" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+              </button>
+              <button onClick={() => { setShowModal(true); setFormError(''); setResult(null); }} className="flex items-center gap-2 bg-[#F97316] hover:bg-orange-500 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors">
+                <UserPlus className="w-4 h-4" />Open New Account
+              </button>
+            </div>
           </div>
 
           {loading ? <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-gray-300" /></div>

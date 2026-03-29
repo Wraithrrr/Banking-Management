@@ -5,6 +5,9 @@ import { Transaction, TransactionType, TransactionStatus } from './entities/tran
 import { VaultBalance } from './entities/vault-balance.entity'
 import { AccountsService } from '../accounts/accounts.service'
 import { DepositDto, WithdrawalDto, TransferDto } from './dto/transaction.dto'
+import { AuditLogService } from '../audit-log/audit-log.service'
+import { NotificationsService } from '../notifications/notifications.service'
+import { NotificationType } from '../notifications/entities/notification.entity'
 
 const DAILY_LIMIT = 1_000_000 // ₦1,000,000 requires approval
 
@@ -17,6 +20,8 @@ export class TransactionsService {
     private vaultRepository: Repository<VaultBalance>,
     private accountsService: AccountsService,
     private dataSource: DataSource,
+    private auditLogService: AuditLogService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private generateRef(): string {
@@ -82,6 +87,14 @@ export class TransactionsService {
       await this.updateVault(actor.branchId ?? 0, actor.bankId, TransactionType.DEPOSIT, dto.amount)
     }
 
+    if (requiresApproval) {
+      this.notificationsService.notifyRole({
+        role: 'head-operations', bankId: actor.bankId,
+        type: NotificationType.TRANSACTION_APPROVAL,
+        message: `Large deposit of ₦${dto.amount.toLocaleString()} requires your approval (Ref: ${txn.reference}).`,
+        relatedEntityId: txn.id, relatedEntityType: 'transaction',
+      })
+    }
     return { ...txn, requiresApproval, message: requiresApproval ? 'Transaction queued for Head of Operations approval (amount exceeds ₦1,000,000).' : 'Deposit successful.' }
   }
 
@@ -115,6 +128,14 @@ export class TransactionsService {
       await this.updateVault(actor.branchId ?? 0, actor.bankId, TransactionType.WITHDRAWAL, dto.amount)
     }
 
+    if (requiresApproval) {
+      this.notificationsService.notifyRole({
+        role: 'head-operations', bankId: actor.bankId,
+        type: NotificationType.TRANSACTION_APPROVAL,
+        message: `Large withdrawal of ₦${dto.amount.toLocaleString()} requires your approval (Ref: ${txn.reference}).`,
+        relatedEntityId: txn.id, relatedEntityType: 'transaction',
+      })
+    }
     return { ...txn, requiresApproval, message: requiresApproval ? 'Transaction queued for approval.' : 'Withdrawal successful.' }
   }
 
@@ -158,11 +179,19 @@ export class TransactionsService {
       }
     })
 
+    if (requiresApproval) {
+      this.notificationsService.notifyRole({
+        role: 'head-operations', bankId: actor.bankId,
+        type: NotificationType.TRANSACTION_APPROVAL,
+        message: `Large transfer of ₦${dto.amount.toLocaleString()} requires your approval.`,
+        relatedEntityType: 'transaction',
+      })
+    }
     return { requiresApproval, message: requiresApproval ? 'Transfer queued for approval.' : 'Transfer successful.' }
   }
 
   // ── Approve pending transaction ───────────────────────────────────────────
-  async approve(txnId: number, actor: { userId: number; bankId: number; role: string }) {
+  async approve(txnId: number, actor: { userId: number; bankId: number; role: string; name?: string }) {
     if (actor.role !== 'head-operations') {
       throw new ForbiddenException('Only Head of Operations can approve transactions.')
     }
@@ -198,7 +227,54 @@ export class TransactionsService {
       }
     })
 
+    try {
+      await this.auditLogService.log({
+        action: 'TRANSACTION_APPROVED',
+        entityType: 'transaction',
+        entityId: txnId,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        actorName: actor.name ?? 'Head of Operations',
+        description: `Transaction #${txn.reference} approved — ₦${txn.amount} (${txn.type})`,
+        bankId: actor.bankId,
+        branchId: txn.branchId ?? null,
+      })
+    } catch (_) {}
+
     return { message: 'Transaction approved and posted.' }
+  }
+
+  // ── Decline pending transaction ───────────────────────────────────────────
+  async decline(txnId: number, actor: { userId: number; bankId: number; role: string; name?: string }) {
+    if (actor.role !== 'head-operations') {
+      throw new ForbiddenException('Only Head of Operations can decline transactions.')
+    }
+
+    const txn = await this.transactionsRepository.findOne({
+      where: { id: txnId, bankId: actor.bankId, status: TransactionStatus.PENDING_APPROVAL },
+    })
+    if (!txn) throw new NotFoundException('Pending transaction not found.')
+
+    await this.transactionsRepository.update(txnId, {
+      status: TransactionStatus.REJECTED,
+      approvedById: actor.userId,
+    })
+
+    try {
+      await this.auditLogService.log({
+        action: 'TRANSACTION_DECLINED',
+        entityType: 'transaction',
+        entityId: txnId,
+        actorId: actor.userId,
+        actorRole: actor.role,
+        actorName: actor.name ?? 'Head of Operations',
+        description: `Transaction #${txn.reference} declined — ₦${txn.amount} (${txn.type})`,
+        bankId: actor.bankId,
+        branchId: txn.branchId ?? null,
+      })
+    } catch (_) {}
+
+    return { message: 'Transaction declined.' }
   }
 
   // ── List transactions ─────────────────────────────────────────────────────

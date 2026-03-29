@@ -10,6 +10,7 @@ import {
   GitBranch, UserPlus, FileClock, ClipboardCheck, BarChart2,
   TrendingUp, AlertTriangle, FileText, Wallet, UserCheck,
   HeadphonesIcon, BookOpen, Landmark, CreditCard, Bell,
+  FolderOpen, Banknote,
 } from 'lucide-react';
 import { authFetch } from '@/lib/auth-client';
 
@@ -88,25 +89,28 @@ export default function Sidebar({
       { label: 'User Management', href: '/banking/smart-bank/admin', icon: Users },
       { label: 'Add Employee', href: '/banking/smart-bank/admin?tab=add', icon: UserPlus },
       { label: 'Branch Management', href: '/banking/smart-bank/admin?tab=branches', icon: GitBranch },
+      { label: 'Payroll', href: '/banking/smart-bank/admin?tab=payroll', icon: Banknote },
+      { label: 'HR Documents', href: '/banking/smart-bank/admin?tab=documents', icon: FolderOpen },
       { label: 'Audit Logs', href: '/banking/smart-bank/admin?tab=audit', icon: FileClock },
     ],
     compliance: [
       { label: 'Compliance Dashboard', href: '/banking/smart-bank/compliance', icon: LayoutDashboard },
       { label: 'KYC / AML Reviews', href: '/banking/smart-bank/compliance?tab=kyc', icon: UserCheck },
       { label: 'Shariah Audit', href: '/banking/smart-bank/compliance?tab=audit', icon: FileCheck },
-      { label: 'Regulatory Reports', href: '/banking/smart-bank/compliance?tab=reports', icon: FileText },
       { label: 'Zakat & Social', href: '/banking/smart-bank/compliance?tab=zakat', icon: Scale },
+      { label: 'Workflows', href: '/banking/smart-bank/compliance?tab=workflows', icon: Activity },
+      { label: 'Regulatory Documents', href: '/banking/smart-bank/compliance?tab=reports', icon: FolderOpen },
     ],
     'internal-control': [
       { label: 'Audit Dashboard', href: '/banking/smart-bank/internal-control', icon: LayoutDashboard },
-      { label: 'Audit Logs', href: '/banking/smart-bank/internal-control?tab=logs', icon: FileClock },
+      { label: 'Transaction Log', href: '/banking/smart-bank/internal-control?tab=logs', icon: FileClock },
       { label: 'Exception Reports', href: '/banking/smart-bank/internal-control?tab=exceptions', icon: AlertTriangle },
-      { label: 'User Activity', href: '/banking/smart-bank/internal-control?tab=activity', icon: Activity },
-      { label: 'Audit Reports', href: '/banking/smart-bank/internal-control?tab=reports', icon: ClipboardCheck },
+      { label: 'Audit Documents', href: '/banking/smart-bank/internal-control?tab=reports', icon: FolderOpen },
     ],
     'head-operations': [
       { label: 'Operations Overview', href: '/banking/smart-bank/head-operations', icon: LayoutDashboard },
       { label: 'Transaction Approvals', href: '/banking/smart-bank/head-operations?tab=approvals', icon: CheckSquareIcon },
+      { label: 'Payroll Approvals', href: '/banking/smart-bank/head-operations?tab=payroll', icon: Banknote },
       { label: 'Branch Performance', href: '/banking/smart-bank/head-operations?tab=branches', icon: GitBranch },
       { label: 'Escalations', href: '/banking/smart-bank/head-operations?tab=escalations', icon: AlertTriangle },
       { label: 'Reports', href: '/banking/smart-bank/head-operations?tab=reports', icon: BarChart2 },
@@ -123,6 +127,7 @@ export default function Sidebar({
       { label: 'Transactions', href: '/banking/smart-bank/branch-manager?tab=transactions', icon: Activity },
       { label: 'Staff & Schedule', href: '/banking/smart-bank/branch-manager?tab=staff', icon: Users },
       { label: 'Loan Recommendations', href: '/banking/smart-bank/branch-manager?tab=loans', icon: Landmark },
+      { label: 'Branch Documents', href: '/banking/smart-bank/branch-manager?tab=documents', icon: FolderOpen },
       { label: 'Branch Reports', href: '/banking/smart-bank/branch-manager?tab=reports', icon: FileText },
     ],
     'credit-officer': [
@@ -131,6 +136,7 @@ export default function Sidebar({
       { label: 'Credit Assessment', href: '/banking/smart-bank/credit-officer?tab=assessment', icon: ClipboardCheck },
       { label: 'My Portfolio', href: '/banking/smart-bank/credit-officer?tab=portfolio', icon: Landmark },
       { label: 'Collections', href: '/banking/smart-bank/credit-officer?tab=collections', icon: DollarSign },
+      { label: 'Loan Documents', href: '/banking/smart-bank/credit-officer?tab=documents', icon: FolderOpen },
     ],
     'customer-service': [
       { label: 'My Dashboard', href: '/banking/smart-bank/customer-service', icon: LayoutDashboard },

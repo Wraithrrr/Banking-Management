@@ -6,6 +6,7 @@ import {
   MapPin, CheckCircle, AlertTriangle, DollarSign, Loader2, RefreshCw, X,
 } from 'lucide-react';
 import Sidebar from '@/components/SmartBank/Sidebar';
+import DocumentManager from '@/components/SmartBank/DocumentManager';
 import { authFetch, getStoredUser } from '@/lib/auth-client';
 import { useSearchParams } from 'next/navigation';
 
@@ -21,7 +22,7 @@ const fmt = (v: string | number) => '₦' + Number(v).toLocaleString('en-NG', { 
 function BranchManagerInner() {
   const user = getStoredUser();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'overview' | 'loans'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'loans' | 'documents'>('overview');
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -32,6 +33,7 @@ function BranchManagerInner() {
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'loans') setActiveTab('loans');
+    else if (tab === 'documents') setActiveTab('documents');
   }, [searchParams]);
 
   const loadLoans = useCallback(async () => {
@@ -96,6 +98,7 @@ function BranchManagerInner() {
           {[
             { id: 'overview', label: 'Branch Overview' },
             { id: 'loans', label: `Loan Approvals${pendingLoans.length > 0 ? ` (${pendingLoans.length})` : ''}` },
+            { id: 'documents', label: 'Branch Documents' },
           ].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id as any)}
               className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${activeTab === t.id ? 'bg-green-800 text-white' : 'bg-white border border-gray-200 text-[#64748B] hover:bg-gray-50'}`}>{t.label}</button>
@@ -232,6 +235,17 @@ function BranchManagerInner() {
           </div>
         </div>
       )}
+
+        {/* Documents Tab */}
+        {activeTab === 'documents' && (
+          <DocumentManager
+            defaultCategory="branch"
+            allowedCategories={['branch', 'operational', 'general']}
+            title="Branch Documents"
+            description="Branch reports, inspection forms, staff schedules, cash counts, and operational documents"
+            accentColor="green"
+          />
+        )}
     </div>
   );
 }
