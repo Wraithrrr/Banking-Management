@@ -152,7 +152,6 @@ function CreditOfficerInner() {
           <DollarSign className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-blue-800"><span className="font-bold">Separation of Duties:</span> You recommend and submit loan applications. You cannot approve them. Approval flows: Branch Manager → Head of Credit → Disburse (Operations).</p>
         </div>
-      </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -205,6 +204,7 @@ function CreditOfficerInner() {
           accentColor="blue"
         />
       )}
+      </div>
     </div>
   );
 }

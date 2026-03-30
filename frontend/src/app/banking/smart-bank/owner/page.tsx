@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/auth-client';
 import {
@@ -175,7 +175,7 @@ const TABS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function OwnerDashboard() {
+function OwnerDashboardInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeTab = (searchParams.get('tab') as typeof TABS[number]['id']) || 'executive';
@@ -806,6 +806,14 @@ export default function OwnerDashboard() {
 
       </div>
     </div>
+  );
+}
+
+export default function OwnerDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" /></div>}>
+      <OwnerDashboardInner />
+    </Suspense>
   );
 }
 

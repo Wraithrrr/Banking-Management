@@ -125,6 +125,7 @@ function HeadOperationsInner() {
 
         {/* Pending Approvals (default tab) */}
         {(activeTab === 'approvals' || activeTab === 'overview' || (!activeTab || activeTab === '')) && (
+        <>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <Activity className="w-4 h-4 text-teal-700" />
@@ -211,6 +212,7 @@ function HeadOperationsInner() {
           <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-amber-800"><span className="font-bold">Operations Policy:</span> Transactions above ₦1,000,000 require your approval before posting. Funds are held until you approve or decline.</p>
         </div>
+        </>
         )}
       </div>
 
