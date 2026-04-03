@@ -18,120 +18,6 @@ import type {
   OperationalEfficiency, AlertItem, MicrofinanceDashboardData,
 } from '@/types/owner-dashboard.types';
 
-// ─── Mock data (shaped to match backend schema) ───────────────────────────────
-
-const MOCK_KPIS: MicrofinanceKPIs = {
-  totalLoanPortfolio: 850_000_000,
-  portfolioGrowth: 22.4,
-  activeBorrowers: 28_450,
-  borrowerGrowth: 18.7,
-  par30: 4.2,
-  par30Trend: -0.8,
-  par90: 1.9,
-  ossRatio: 118,
-  ossTarget: 100,
-  totalCustomers: 35_200,
-  customerGrowth: 15.3,
-  activeStaff: 142,
-  activeBranches: 8,
-};
-
-const MOCK_PORTFOLIO: LoanPortfolioSummary = {
-  totalDisbursed: 2_340_000_000,
-  outstandingBalance: 850_000_000,
-  totalCollected: 1_420_000_000,
-  writeOffs: 12_500_000,
-  byProduct: [
-    { product: 'Individual', activeLoans: 15_200, outstandingAmount: 380_000_000, par: 3.8, avgTermMonths: 6, avgLoanSize: 25_000 },
-    { product: 'Group', activeLoans: 8_400, outstandingAmount: 210_000_000, par: 2.1, avgTermMonths: 4, avgLoanSize: 25_000 },
-    { product: 'MSME', activeLoans: 3_800, outstandingAmount: 198_000_000, par: 6.4, avgTermMonths: 12, avgLoanSize: 52_105 },
-    { product: 'Agricultural', activeLoans: 1_050, outstandingAmount: 62_000_000, par: 8.2, avgTermMonths: 9, avgLoanSize: 59_048 },
-  ],
-  monthlyTrend: [
-    { month: 'Oct', disbursed: 105, repaid: 88, newBorrowers: 820 },
-    { month: 'Nov', disbursed: 118, repaid: 96, newBorrowers: 910 },
-    { month: 'Dec', disbursed: 95, repaid: 102, newBorrowers: 640 },
-    { month: 'Jan', disbursed: 128, repaid: 112, newBorrowers: 980 },
-    { month: 'Feb', disbursed: 142, repaid: 118, newBorrowers: 1_050 },
-    { month: 'Mar', disbursed: 158, repaid: 131, newBorrowers: 1_120 },
-  ],
-};
-
-const MOCK_REPAYMENT: RepaymentHealth = {
-  onTimeRate: 91.4,
-  par1to30: 3.9, par1to30Amount: 33_150_000,
-  par31to90: 2.3, par31to90Amount: 19_550_000,
-  par90plus: 1.9, par90plusAmount: 16_150_000,
-  writeOffRate: 1.5,
-};
-
-const MOCK_BRANCHES: BranchPerformance[] = [
-  { id: 1, name: 'Lagos Mainland', location: 'Lagos', loanOfficerCount: 22, activeBorrowers: 6_200, portfolioSize: 188_000_000, par30: 2.8, collectionRate: 94.5, efficiencyScore: 92, status: 'excellent' },
-  { id: 2, name: 'Abuja Garki', location: 'FCT', loanOfficerCount: 18, activeBorrowers: 4_800, portfolioSize: 154_000_000, par30: 3.4, collectionRate: 93.1, efficiencyScore: 88, status: 'excellent' },
-  { id: 3, name: 'Kano Central', location: 'Kano', loanOfficerCount: 16, activeBorrowers: 4_200, portfolioSize: 126_000_000, par30: 5.1, collectionRate: 91.2, efficiencyScore: 81, status: 'good' },
-  { id: 4, name: 'Port Harcourt', location: 'Rivers', loanOfficerCount: 15, activeBorrowers: 3_850, portfolioSize: 118_000_000, par30: 4.6, collectionRate: 91.8, efficiencyScore: 83, status: 'good' },
-  { id: 5, name: 'Ibadan North', location: 'Oyo', loanOfficerCount: 14, activeBorrowers: 3_400, portfolioSize: 98_000_000, par30: 6.2, collectionRate: 89.4, efficiencyScore: 74, status: 'needs-attention' },
-  { id: 6, name: 'Enugu GRA', location: 'Enugu', loanOfficerCount: 12, activeBorrowers: 2_900, portfolioSize: 82_000_000, par30: 7.8, collectionRate: 87.2, efficiencyScore: 66, status: 'needs-attention' },
-  { id: 7, name: 'Kaduna South', location: 'Kaduna', loanOfficerCount: 11, activeBorrowers: 2_100, portfolioSize: 58_000_000, par30: 5.8, collectionRate: 90.1, efficiencyScore: 78, status: 'good' },
-  { id: 8, name: 'Abeokuta', location: 'Ogun', loanOfficerCount: 10, activeBorrowers: 1_000, portfolioSize: 26_000_000, par30: 11.4, collectionRate: 83.5, efficiencyScore: 48, status: 'critical' },
-];
-
-const MOCK_SAVINGS: SavingsMobilization = {
-  totalDeposits: 312_000_000,
-  depositGrowth: 28.6,
-  avgBalancePerCustomer: 8_863,
-  activeSavingsAccounts: 35_200,
-  monthlyDepositTrend: [
-    { month: 'Oct', amount: 224 }, { month: 'Nov', amount: 238 },
-    { month: 'Dec', amount: 251 }, { month: 'Jan', amount: 270 },
-    { month: 'Feb', amount: 289 }, { month: 'Mar', amount: 312 },
-  ],
-  segments: [
-    { type: 'Individual', count: 24_800, percentage: 70.5, avgLoanSize: 22_000, newThisMonth: 1_120 },
-    { type: 'Group', count: 8_400, percentage: 23.9, avgLoanSize: 18_500, newThisMonth: 320 },
-    { type: 'MSME', count: 2_000, percentage: 5.7, avgLoanSize: 85_000, newThisMonth: 85 },
-  ],
-  kycStatus: { approved: 31_840, pending: 3_360 },
-};
-
-const MOCK_IMPACT: SocialImpactMetrics = {
-  totalBeneficiaries: 35_200,
-  femalePercentage: 68.4,
-  ruralPercentage: 42.1,
-  estimatedJobsCreated: 18_450,
-  csrSpending: 8_500_000,
-  sustainabilityScore: 74,
-  sustainabilityBreakdown: {
-    repaymentHealth: 82,
-    outreachGrowth: 78,
-    genderInclusion: 86,
-    ruralPenetration: 64,
-  },
-};
-
-const MOCK_OPEX: OperationalEfficiency = {
-  totalOpex: 185_000_000,
-  costPerBorrower: 6_503,
-  costPerOfficer: 1_302_817,
-  opexRatio: 21.8,
-  opexTarget: 20.0,
-  staffByRole: [
-    { role: 'Loan Officers', count: 88 },
-    { role: 'Branch Managers', count: 8 },
-    { role: 'Customer Service', count: 18 },
-    { role: 'Credit Officers', count: 12 },
-    { role: 'Operations', count: 10 },
-    { role: 'Tellers', count: 6 },
-  ],
-};
-
-const MOCK_ALERTS: AlertItem[] = [
-  { id: '1', type: 'critical', title: 'PAR >10% — Abeokuta Branch', detail: 'PAR30 at 11.4%, exceeding the 10% threshold. Immediate field review required.', branchName: 'Abeokuta', value: 11.4 },
-  { id: '2', type: 'warning', title: 'OpEx Ratio Above Target', detail: 'Operating expense ratio at 21.8% vs 20% target. Review discretionary spend.', value: 21.8 },
-  { id: '3', type: 'warning', title: 'KYC Backlog — 3,360 Pending', detail: '3,360 customers awaiting KYC approval. Compliance team capacity may be constrained.' },
-  { id: '4', type: 'info', title: 'OSS Ratio Healthy at 118%', detail: 'Operational self-sufficiency is above target, indicating financial sustainability.' },
-];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmt = (n: number) => {
@@ -197,14 +83,14 @@ function OwnerDashboardInner() {
 
   useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
 
-  const kpis      = liveData?.kpis             ?? MOCK_KPIS;
-  const portfolio = liveData?.loanPortfolio   ?? MOCK_PORTFOLIO;
-  const repayment = liveData?.repaymentHealth ?? MOCK_REPAYMENT;
-  const branches  = liveData?.branches        ?? MOCK_BRANCHES;
-  const savings   = liveData?.savings         ?? MOCK_SAVINGS;
-  const impact    = liveData?.socialImpact    ?? MOCK_IMPACT;
-  const opex      = liveData?.operationalEfficiency ?? MOCK_OPEX;
-  const alerts    = liveData?.alerts          ?? MOCK_ALERTS;
+  const kpis      = liveData?.kpis ?? { totalLoanPortfolio: 0, portfolioGrowth: 0, activeBorrowers: 0, borrowerGrowth: 0, par30: 0, par30Trend: 0, par90: 0, ossRatio: 0, ossTarget: 100, totalCustomers: 0, customerGrowth: 0, activeStaff: 0, activeBranches: 0 };
+  const portfolio = liveData?.loanPortfolio ?? { totalDisbursed: 0, outstandingBalance: 0, totalCollected: 0, writeOffs: 0, byProduct: [], monthlyTrend: [] };
+  const repayment = liveData?.repaymentHealth ?? { onTimeRate: 0, par1to30: 0, par1to30Amount: 0, par31to90: 0, par31to90Amount: 0, par90plus: 0, par90plusAmount: 0, writeOffRate: 0 };
+  const branches  = liveData?.branches ?? [];
+  const savings   = liveData?.savings ?? { totalDeposits: 0, depositGrowth: 0, avgBalancePerCustomer: 0, activeSavingsAccounts: 0, monthlyDepositTrend: [], segments: [], kycStatus: { approved: 0, pending: 0 } };
+  const impact    = liveData?.socialImpact ?? { totalBeneficiaries: 0, femalePercentage: 0, ruralPercentage: 0, estimatedJobsCreated: 0, csrSpending: 0, sustainabilityScore: 0, sustainabilityBreakdown: { repaymentHealth: 0, outreachGrowth: 0, genderInclusion: 0, ruralPenetration: 0 } };
+  const opex      = liveData?.operationalEfficiency ?? { totalOpex: 0, costPerBorrower: 0, costPerOfficer: 0, opexRatio: 0, opexTarget: 20, staffByRole: [] };
+  const alerts    = liveData?.alerts ?? [];
 
   return (
     <div className="lg:flex min-h-screen bg-[#F8FAFC]">

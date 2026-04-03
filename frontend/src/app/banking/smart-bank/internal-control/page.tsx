@@ -7,13 +7,6 @@ import Sidebar from '@/components/SmartBank/Sidebar';
 import DocumentManager from '@/components/SmartBank/DocumentManager';
 import { authFetch } from '@/lib/auth-client';
 
-// ─── Static policy exception records (no backend source yet) ─────────────────
-const POLICY_EXCEPTIONS = [
-  { ref: 'EX-POL-001', description: 'Teller attempted to process own account transaction', severity: 'high' as const, date: '2026-03-25', status: 'open' as const },
-  { ref: 'EX-POL-002', description: 'Loan approved same day as application — missing 24hr review period', severity: 'medium' as const, date: '2026-03-24', status: 'under-review' as const },
-  { ref: 'EX-POL-003', description: 'KYC documents uploaded after account activation (retroactive)', severity: 'medium' as const, date: '2026-03-23', status: 'resolved' as const },
-  { ref: 'EX-POL-004', description: 'User login from unrecognised IP address flagged', severity: 'low' as const, date: '2026-03-22', status: 'resolved' as const },
-];
 
 const MODULE_ACCESS = [
   { module: 'User Management', access: 'Read Only' },
@@ -148,7 +141,6 @@ function InternalControlInner() {
       status: 'resolved' as const,
       source: 'live' as const,
     })),
-    ...POLICY_EXCEPTIONS.map(e => ({ ...e, source: 'policy' as const })),
   ];
 
   const openExceptions = liveExceptions.filter(e => e.status === 'open' || e.status === 'under-review').length;
