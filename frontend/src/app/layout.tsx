@@ -16,6 +16,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script defer src="https://analytics.smartes.com.ng/script.js" data-website-id="026fe571-64c4-4008-ba5d-a6a9acf42eaf" />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   )
