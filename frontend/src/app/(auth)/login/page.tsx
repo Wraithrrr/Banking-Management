@@ -3,8 +3,29 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Eye, EyeOff, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  Building2, Eye, EyeOff, ArrowRight, Loader2,
+  LayoutDashboard, FileCheck, GitBranch, Settings,
+  ClipboardCheck, TrendingUp, BookOpen, HeadphonesIcon,
+  UserCheck, Wallet, AlertCircle, AlertTriangle,
+} from 'lucide-react';
 import { loginWithCredentials, ROLE_PATHS } from '@/lib/auth-client';
+
+const DEMO_ROLES = [
+  { id: 'owner', label: 'MD / CEO', level: 'Executive', icon: LayoutDashboard, path: '/banking/smart-bank/owner', color: 'bg-[#0A1F44]' },
+  { id: 'compliance', label: 'Compliance Officer', level: 'Management', icon: FileCheck, path: '/banking/smart-bank/compliance', color: 'bg-amber-700' },
+  { id: 'internal-control', label: 'Internal Control', level: 'Management', icon: ClipboardCheck, path: '/banking/smart-bank/internal-control', color: 'bg-purple-700' },
+  { id: 'head-operations', label: 'Head of Operations', level: 'Management', icon: TrendingUp, path: '/banking/smart-bank/head-operations', color: 'bg-teal-700' },
+  { id: 'head-credit', label: 'Head of Credit', level: 'Management', icon: AlertCircle, path: '/banking/smart-bank/head-credit', color: 'bg-yellow-700' },
+  { id: 'branch-manager', label: 'Branch Manager', level: 'Branch', icon: GitBranch, path: '/banking/smart-bank/branch-manager', color: 'bg-green-700' },
+  { id: 'credit-officer', label: 'Credit Officer', level: 'Operations', icon: BookOpen, path: '/banking/smart-bank/credit-officer', color: 'bg-blue-600' },
+  { id: 'customer-service', label: 'Customer Service', level: 'Operations', icon: HeadphonesIcon, path: '/banking/smart-bank/customer-service', color: 'bg-emerald-600' },
+  { id: 'account-officer', label: 'Account Officer', level: 'Operations', icon: UserCheck, path: '/banking/smart-bank/account-officer', color: 'bg-indigo-600' },
+  { id: 'teller', label: 'Teller', level: 'Operations', icon: Wallet, path: '/banking/smart-bank/teller', color: 'bg-cyan-600' },
+  { id: 'admin', label: 'IT Administrator', level: 'System', icon: Settings, path: '/banking/smart-bank/admin', color: 'bg-slate-600' },
+];
+
+const LEVEL_ORDER = ['Executive', 'Management', 'Branch', 'Operations', 'System'];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,13 +35,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [loadingRole, setLoadingRole] = useState<string | null>(null);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+  const grouped = LEVEL_ORDER.map(level => ({
+    level,
+    roles: DEMO_ROLES.filter(r => r.level === level),
+  })).filter(g => g.roles.length > 0);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
     setError('');
     setIsSubmitting(true);
-
     try {
       const user = await loginWithCredentials(email.trim(), password);
       document.cookie = `smartes_auth=1; path=/; max-age=${60 * 60 * 24}`;
@@ -33,12 +60,19 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoLogin = (role: typeof DEMO_ROLES[0]) => {
+    setLoadingRole(role.id);
+    setIsDemoLoading(true);
+    document.cookie = `smartes_auth=demo; path=/; max-age=${60 * 60 * 4}`;
+    setTimeout(() => router.push(role.path), 700);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col lg:flex-row">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col lg:flex-row">
 
-        {/* Left panel — branding */}
-        <div className="bg-[#0A1F44] lg:w-[45%] p-10 flex flex-col justify-between">
+        {/* Left panel */}
+        <div className="bg-[#0A1F44] lg:w-[40%] p-10 flex flex-col justify-between">
           <div>
             <Link href="/" className="flex items-center gap-2.5 mb-12">
               <div className="w-9 h-9 bg-[#F97316] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -71,9 +105,9 @@ export default function LoginPage() {
           <p className="text-blue-400 text-xs mt-10">© {new Date().getFullYear()} SmartES Solutions · support@smartes.com.ng</p>
         </div>
 
-        {/* Right panel — login form */}
-        <div className="flex-1 p-8 lg:p-10 flex items-center">
-          <div className="w-full max-w-sm mx-auto">
+        {/* Right panel */}
+        <div className="flex-1 overflow-y-auto max-h-screen p-8 lg:p-10">
+          <div className="max-w-sm mx-auto">
             <h1 className="text-2xl font-bold text-[#0A1F44] mb-1">Sign In</h1>
             <p className="text-[#64748B] text-sm mb-8">
               New employee?{' '}
@@ -139,7 +173,52 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <p className="text-center text-xs text-[#64748B] mt-8">
+            {/* Demo divider */}
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">DEMO ACCESS</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* Demo roles */}
+            <div className="space-y-4">
+              {grouped.map(({ level, roles }) => (
+                <div key={level}>
+                  <p className="text-xs font-bold text-[#64748B] uppercase tracking-widest mb-2">{level}</p>
+                  <div className="space-y-1.5">
+                    {roles.map((role) => {
+                      const Icon = role.icon;
+                      const loading = loadingRole === role.id;
+                      return (
+                        <button
+                          key={role.id}
+                          onClick={() => handleDemoLogin(role)}
+                          disabled={isDemoLoading || isSubmitting}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                            loading
+                              ? 'border-[#F97316] bg-orange-50'
+                              : 'border-gray-200 hover:border-[#F97316]/40 hover:bg-orange-50/40'
+                          } ${(isDemoLoading && !loading) || isSubmitting ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-7 h-7 ${role.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                              <Icon className="w-3.5 h-3.5 text-white" />
+                            </div>
+                            <span className="text-[#0A1F44] text-xs">{role.label}</span>
+                          </div>
+                          {loading
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#F97316]" />
+                            : <ArrowRight className="w-3 h-3 text-gray-300" />
+                          }
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-xs text-[#64748B] mt-6">
               Don't have a bank account?{' '}
               <Link href="/register" className="text-[#F97316] font-semibold hover:underline">
                 Register your bank
